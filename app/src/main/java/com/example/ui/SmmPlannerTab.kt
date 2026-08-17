@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Info
@@ -42,8 +43,8 @@ import kotlinx.coroutines.launch
 
 const val BEKANSI_CONTACT_FOOTER = """
 🌐 Website: https://bekansi-crafted-elegance.lovable.app
-📞 Call: +251 988 828 861 | +251 910 824 534
-💬 WhatsApp: https://wa.me/+251988828861
+📞 Call: +251 988 828 861
+💬 WhatsApp: https://wa.me/251988828861
 ✈️ Telegram: https://t.me/Bekansiinfo
 📘 Facebook: https://www.facebook.com/bekansifurniture
 🎵 TikTok: https://www.tiktok.com/@bekansi.furniture
@@ -1141,7 +1142,7 @@ Create lasting family traditions.
                         You MUST return exactly 7 days. For EACH day, generate:
                         1. One post optimized for FACEBOOK desktop feed (rich, engaging, call to action with Bole Showroom, phone: +251 911 000 000, and our official page link: https://www.facebook.com/bekansifurniture).
                         2. One post optimized for INSTAGRAM captions (emoji-rich, visual keywords, hashtags, and a prompt to follow our TikTok: https://www.tiktok.com/@bekansi.furniture).
-                        3. One post optimized for TELEGRAM channel draft (structured with emojis, bullet points, and calls to action linking to our official Telegram channel: https://t.me/Bekansiinfo / user handle @Bekansiinfo and WhatsApp click-to-chat link: https://wa.me/message/NVKWSHDCKFDXN1).
+                        3. One post optimized for TELEGRAM channel draft (structured with emojis, bullet points, and calls to action linking to our official Telegram channel: https://t.me/Bekansiinfo / user handle @Bekansiinfo and WhatsApp click-to-chat link: https://wa.me/251988828861).
                         4. A creative VISUAL PROMPT describing what image to generate for this day (e.g., modern bedroom, glowing bed, carpenters chisel).
                         5. A matching marketing category (e.g., Product Showcase, Customer Testimonial, Behind-the-scenes, Interior Design Tips, promotions, Educational Content, Seasonal Campaigns).
                         6. Day Number (1-7), Day Name (Monday - Sunday), and focus topic.
@@ -1590,7 +1591,7 @@ Create lasting family traditions.
                                 "customer testimonial" -> Icons.Default.Star
                                 "behind-the-scenes" -> Icons.Default.Settings
                                 "interior design tips" -> Icons.Default.Info
-                                else -> Icons.Default.List
+                                else -> Icons.AutoMirrored.Filled.List
                             },
                             contentDescription = "",
                             tint = GoldAccent.copy(alpha = 0.7f),
@@ -1599,7 +1600,7 @@ Create lasting family traditions.
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
-                    Divider(color = Color.White.copy(alpha = 0.05f))
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
                     Spacer(modifier = Modifier.height(10.dp))
 
                     // Platform selector tab inside day workspace
@@ -1685,7 +1686,7 @@ Create lasting family traditions.
                     Text(
                         "• Best Posting Hours in Addis Ababa: 12:00 PM - 2:00 PM (Lunch scrolling) & 6:30 PM - 8:30 PM (Evening leisure on Telegram).\n" +
                         "• Multi-Channel Strategy: Facebook captures homeowners over 30 yrs; Instagram drives premium interior design contracts; Telegram hosts direct organic discount purchases.\n" +
-                        "• Lead Retention Rule: Always prompt users to message our official Telegram channel @Bekansiinfo (https://t.me/Bekansiinfo) or WhatsApp (https://wa.me/message/NVKWSHDCKFDXN1) directly to instantly receive a personalized design quote.",
+                        "• Lead Retention Rule: Always prompt users to message our official Telegram channel @Bekansiinfo (https://t.me/Bekansiinfo) or WhatsApp (https://wa.me/251988828861) directly to instantly receive a personalized design quote.",
                         fontSize = 9.5.sp,
                         color = TextMuted,
                         lineHeight = 14.sp
@@ -1802,7 +1803,7 @@ fun MockSocialFeedPreview(
             )
 
             Spacer(modifier = Modifier.height(8.dp))
-            Divider(color = Color.White.copy(alpha = 0.05f))
+            HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
             Spacer(modifier = Modifier.height(8.dp))
 
             // Mock Visual Prompt Assist Block

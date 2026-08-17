@@ -1,6 +1,8 @@
 package com.example.data.database
 
 import androidx.room.*
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.model.*
 import kotlinx.coroutines.flow.Flow
 
@@ -306,6 +308,203 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        /**
+         * Migration from version 1 (Base Core CRM & Catalog) to version 2 (Furniture Design Album & Analytics Module)
+         */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `album_categories` (
+                        `id` TEXT NOT NULL PRIMARY KEY,
+                        `name` TEXT NOT NULL,
+                        `nameAm` TEXT NOT NULL,
+                        `nameOm` TEXT NOT NULL,
+                        `description` TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `product_albums` (
+                        `id` TEXT NOT NULL PRIMARY KEY,
+                        `name` TEXT NOT NULL,
+                        `category` TEXT NOT NULL,
+                        `designStyle` TEXT NOT NULL,
+                        `descriptionAm` TEXT NOT NULL,
+                        `descriptionOm` TEXT NOT NULL,
+                        `descriptionEn` TEXT NOT NULL,
+                        `dimensions` TEXT NOT NULL,
+                        `materialOptions` TEXT NOT NULL,
+                        `colorOptions` TEXT NOT NULL,
+                        `estimatedProductionTime` TEXT NOT NULL,
+                        `priceRangeLower` REAL NOT NULL,
+                        `priceRangeUpper` REAL NOT NULL,
+                        `popularityScore` INTEGER NOT NULL,
+                        `tags` TEXT NOT NULL,
+                        `imageUrls` TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `customer_favorites` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `customerPhone` TEXT NOT NULL,
+                        `albumId` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `customer_selections` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `leadId` INTEGER NOT NULL,
+                        `albumId` TEXT NOT NULL,
+                        `requirements` TEXT NOT NULL,
+                        `budget` REAL NOT NULL,
+                        `createdAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `design_comparisons` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `customerPhone` TEXT NOT NULL,
+                        `albumId1` TEXT NOT NULL,
+                        `albumId2` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `album_analytics` (
+                        `albumId` TEXT NOT NULL PRIMARY KEY,
+                        `viewCount` INTEGER NOT NULL,
+                        `selectionCount` INTEGER NOT NULL,
+                        `favoriteCount` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        /**
+         * Migration from version 2 to version 3 (Customer Profiles, Order Pipeline, Warehouse Inventory & Logistics Tracking)
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `customer_profiles` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `phone` TEXT NOT NULL,
+                        `email` TEXT NOT NULL,
+                        `location` TEXT NOT NULL,
+                        `loyaltyPoints` INTEGER NOT NULL,
+                        `csatScore` REAL NOT NULL,
+                        `preferences` TEXT NOT NULL,
+                        `referralCode` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `orders` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `quotationId` INTEGER NOT NULL,
+                        `customerName` TEXT NOT NULL,
+                        `customerPhone` TEXT NOT NULL,
+                        `productName` TEXT NOT NULL,
+                        `totalAmount` REAL NOT NULL,
+                        `depositPaid` REAL NOT NULL,
+                        `remainingBalance` REAL NOT NULL,
+                        `paymentStatus` TEXT NOT NULL,
+                        `orderStage` TEXT NOT NULL,
+                        `warehouseLocation` TEXT NOT NULL,
+                        `deliveryAddress` TEXT NOT NULL,
+                        `driverName` TEXT NOT NULL,
+                        `estimatedDeliveryDate` TEXT NOT NULL,
+                        `signatureCaptured` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `warehouse_items` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `barcode` TEXT NOT NULL,
+                        `productName` TEXT NOT NULL,
+                        `warehouseName` TEXT NOT NULL,
+                        `quantity` INTEGER NOT NULL,
+                        `reorderPoint` INTEGER NOT NULL,
+                        `unitCost` REAL NOT NULL,
+                        `supplierName` TEXT NOT NULL,
+                        `lastRestocked` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `delivery_records` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `orderId` INTEGER NOT NULL,
+                        `driverName` TEXT NOT NULL,
+                        `vehiclePlate` TEXT NOT NULL,
+                        `status` TEXT NOT NULL,
+                        `currentGpsLat` REAL NOT NULL,
+                        `currentGpsLng` REAL NOT NULL,
+                        `deliveryNotes` TEXT NOT NULL,
+                        `isSigned` INTEGER NOT NULL,
+                        `timestamp` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        /**
+         * Migration from version 3 to version 4 (Audit Logging & Media Asset Syncing Pipeline)
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `audit_logs` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `userRole` TEXT NOT NULL,
+                        `action` TEXT NOT NULL,
+                        `details` TEXT NOT NULL,
+                        `timestamp` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `media_assets` (
+                        `id` TEXT NOT NULL PRIMARY KEY,
+                        `title` TEXT NOT NULL,
+                        `category` TEXT NOT NULL,
+                        `mediaType` TEXT NOT NULL,
+                        `fileUri` TEXT NOT NULL,
+                        `downloadUrl` TEXT NOT NULL,
+                        `status` TEXT NOT NULL,
+                        `progress` INTEGER NOT NULL,
+                        `fileSize` TEXT NOT NULL,
+                        `price` TEXT NOT NULL,
+                        `timestamp` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun getDatabase(context: android.content.Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -313,7 +512,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "bekansi_sales_db"
                 )
-                .fallbackToDestructiveMigration()
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
                 INSTANCE = instance
                 instance

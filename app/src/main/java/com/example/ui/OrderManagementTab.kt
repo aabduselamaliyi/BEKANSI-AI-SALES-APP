@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -162,7 +164,7 @@ fun OrderManagementTab(viewModel: SalesViewModel) {
             },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.List, contentDescription = null, tint = WarmMahogany)
+                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, tint = WarmMahogany)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Bekansi Official Order Invoice #${order.id}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
@@ -424,11 +426,11 @@ fun OrderCard(
                 }
 
                 IconButton(onClick = onViewPdfClick) {
-                    Icon(Icons.Default.List, contentDescription = "View Invoice PDF", tint = GoldAccent)
+                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = "View Invoice PDF", tint = GoldAccent)
                 }
 
                 IconButton(onClick = { onExportMessage("WhatsApp") }) {
-                    Icon(Icons.Default.Send, contentDescription = "Notify Client", tint = AccentSuccess)
+                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Notify Client", tint = AccentSuccess)
                 }
             }
         }

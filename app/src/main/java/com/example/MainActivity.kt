@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -298,7 +300,7 @@ fun TabSelectorRow(activeTab: String, onTabSelected: (String) -> Unit) {
     ) {
         TabItem(icon = Icons.Default.Call, label = "AI Chat", isSelected = activeTab == "OMNICHANNEL_CHAT", onClick = { onTabSelected("OMNICHANNEL_CHAT") })
         TabItem(icon = Icons.Default.Person, label = "CRM Leads", isSelected = activeTab == "CRM_LEADS", onClick = { onTabSelected("CRM_LEADS") })
-        TabItem(icon = Icons.Default.List, label = "Catalog", isSelected = activeTab == "PRODUCTS", onClick = { onTabSelected("PRODUCTS") })
+        TabItem(icon = Icons.AutoMirrored.Filled.List, label = "Catalog", isSelected = activeTab == "PRODUCTS", onClick = { onTabSelected("PRODUCTS") })
         TabItem(icon = Icons.Default.Home, label = "Furniture Gallery", isSelected = activeTab == "DESIGN_ALBUMS", onClick = { onTabSelected("DESIGN_ALBUMS") })
         TabItem(icon = Icons.Default.Build, label = "3D Visualizer", isSelected = activeTab == "ROOM_VISUALIZER", onClick = { onTabSelected("ROOM_VISUALIZER") })
         TabItem(icon = Icons.Default.ShoppingCart, label = "Orders Pipeline", isSelected = activeTab == "ORDER_MANAGEMENT", onClick = { onTabSelected("ORDER_MANAGEMENT") })
@@ -451,7 +453,7 @@ fun OmnichannelChatTab(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     val channels = listOf(
-                        Triple("WhatsApp", "https://wa.me/message/NVKWSHDCKFDXN1", AccentSuccess),
+                        Triple("WhatsApp", "https://wa.me/251988828861", AccentSuccess),
                         Triple("Telegram", "https://t.me/Bekansiinfo", Color(0xFF0088CC)),
                         Triple("Facebook", "https://www.facebook.com/bekansifurniture", Color(0xFF1877F2)),
                         Triple("TikTok", "https://www.tiktok.com/@bekansi.furniture?_r=1&_t=ZS-97IUNHSGOO5", Color(0xFFFE2C55))
@@ -477,7 +479,7 @@ fun OmnichannelChatTab(
                                 Icon(
                                     imageVector = when(name) {
                                         "WhatsApp" -> Icons.Default.Call
-                                        "Telegram" -> Icons.Default.Send
+                                        "Telegram" -> Icons.AutoMirrored.Filled.Send
                                         "TikTok" -> Icons.Default.PlayArrow
                                         else -> Icons.Default.Share
                                     },
@@ -666,7 +668,7 @@ fun OmnichannelChatTab(
                 contentColor = Color.White,
                 modifier = Modifier.size(50.dp)
             ) {
-                Icon(Icons.Default.Send, contentDescription = "Send")
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
             }
         }
     }

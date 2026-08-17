@@ -55,7 +55,19 @@ android {
     compose = true
     buildConfig = true
   }
+  sourceSets {
+    getByName("main") {
+      assets.directories.add("schemas")
+    }
+  }
   testOptions { unitTests { isIncludeAndroidResources = true } }
+}
+
+ksp {
+  arg("room.schemaLocation", "$projectDir/schemas")
+  arg("room.incremental", "true")
+  arg("room.expandProjection", "true")
+  arg("moshi.generateAdapter", "true")
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files

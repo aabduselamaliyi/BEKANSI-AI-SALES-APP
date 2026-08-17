@@ -785,24 +785,24 @@ fun FavoritesAndCompareModule(
                         ) {
                             Text("Bespoke Comparison Matrix", color = GoldAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                             
-                            Divider(color = Color.White.copy(alpha = 0.1f))
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 keyCompareRow("Design Detail", d1.name, d2.name)
                             }
-                            Divider(color = Color.White.copy(alpha = 0.05f))
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
                             keyCompareRow("ID", d1.id, d2.id)
-                            Divider(color = Color.White.copy(alpha = 0.05f))
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
                             keyCompareRow("Style", d1.designStyle, d2.designStyle)
-                            Divider(color = Color.White.copy(alpha = 0.05f))
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
                             keyCompareRow("Wood species", d1.materialOptions, d2.materialOptions)
-                            Divider(color = Color.White.copy(alpha = 0.05f))
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
                             keyCompareRow("Finishes", d1.colorOptions, d2.colorOptions)
-                            Divider(color = Color.White.copy(alpha = 0.05f))
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
                             keyCompareRow("Dimensions", d1.dimensions, d2.dimensions)
-                            Divider(color = Color.White.copy(alpha = 0.05f))
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
                             keyCompareRow("Production Era", d1.estimatedProductionTime, d2.estimatedProductionTime)
-                            Divider(color = Color.White.copy(alpha = 0.05f))
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
                             keyCompareRow("Price Frame (ETB)", "ETB ${String.format("%,.0f", d1.priceRangeLower)}", "ETB ${String.format("%,.0f", d2.priceRangeLower)}")
 
                             Spacer(modifier = Modifier.height(10.dp))
@@ -1235,7 +1235,7 @@ fun AlbumDetailModal(
                     }
                 }
 
-                Divider(color = Color.White.copy(alpha = 0.1f))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
                 // Toggle internal view blocks
                 when (activeActionTab) {
@@ -1658,7 +1658,7 @@ fun MediaUploadDamModule(context: android.content.Context, viewModel: SalesViewM
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 LinearProgressIndicator(
-                    progress = 0.148f,
+                    progress = { 0.148f },
                     modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                     color = WarmMahogany,
                     trackColor = LightSurfaceVariant

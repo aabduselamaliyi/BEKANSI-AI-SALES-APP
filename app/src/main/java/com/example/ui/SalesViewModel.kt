@@ -13,9 +13,11 @@ import com.example.data.repository.SalesRepository
 import com.example.data.repository.UploadProgress
 import android.content.Context
 import java.util.UUID
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class SalesViewModel(
     private val repository: SalesRepository,
     val mediaRepository: MediaRepository? = null
