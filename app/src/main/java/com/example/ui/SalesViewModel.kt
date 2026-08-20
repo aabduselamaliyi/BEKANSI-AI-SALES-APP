@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SalesViewModel(
-    private val repository: SalesRepository,
+    val repository: SalesRepository,
     val mediaRepository: MediaRepository? = null
 ) : ViewModel() {
 
@@ -144,6 +144,53 @@ class SalesViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
+
+    val allDesignImages = repository.allDesignImages.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    // Design Gallery Actions
+    fun addDesignImage(image: ProductDesignImage) {
+        viewModelScope.launch {
+            repository.insertDesignImage(image)
+            addAuditLog(currentUserRole.value, "UPLOAD_DESIGN_IMAGE", "Uploaded '${image.productName}' in category '${image.category}'")
+        }
+    }
+
+    fun addDesignImages(images: List<ProductDesignImage>) {
+        viewModelScope.launch {
+            repository.insertDesignImages(images)
+            addAuditLog(currentUserRole.value, "BATCH_UPLOAD_DESIGNS", "Uploaded batch of ${images.size} design photos to gallery")
+        }
+    }
+
+    fun setDesignAsPrimary(image: ProductDesignImage) {
+        viewModelScope.launch {
+            repository.setDesignAsPrimary(image.id, image.category)
+            addAuditLog(currentUserRole.value, "SET_PRIMARY_DESIGN", "Set '${image.productName}' as primary design for ${image.category}")
+        }
+    }
+
+    fun toggleDesignFavorite(image: ProductDesignImage) {
+        viewModelScope.launch {
+            repository.toggleDesignFavorite(image.id, !image.isFavorite)
+        }
+    }
+
+    fun deleteDesignImage(image: ProductDesignImage, hardDelete: Boolean = false) {
+        viewModelScope.launch {
+            if (hardDelete) {
+                repository.hardDeleteDesignImage(image.id)
+                addAuditLog(currentUserRole.value, "HARD_DELETE_DESIGN", "Permanently deleted '${image.productName}' (ID: ${image.id})")
+            } else {
+                repository.softDeleteDesignImage(image.id)
+                addAuditLog(currentUserRole.value, "SOFT_DELETE_DESIGN", "Soft deleted design '${image.productName}' (ID: ${image.id})")
+            }
+        }
+    }
+
 
     // Simulator attributes
     val activeChannel = MutableStateFlow("WhatsApp") // WhatsApp, Facebook, Telegram, LiveChat

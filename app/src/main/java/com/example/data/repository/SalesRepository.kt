@@ -23,7 +23,8 @@ class SalesRepository(
     private val orderRecordDao: OrderRecordDao,
     private val warehouseItemDao: WarehouseItemDao,
     private val deliveryRecordDao: DeliveryRecordDao,
-    private val auditLogDao: AuditLogDao
+    private val auditLogDao: AuditLogDao,
+    private val productDesignImageDao: ProductDesignImageDao? = null
 ) {
     val allLeads: Flow<List<Lead>> = leadDao.getAllLeads()
     val allProducts: Flow<List<Product>> = productDao.getAllProducts()
@@ -44,6 +45,41 @@ class SalesRepository(
     val allWarehouseItems: Flow<List<WarehouseItem>> = warehouseItemDao.getAllWarehouseItems()
     val allDeliveries: Flow<List<DeliveryRecord>> = deliveryRecordDao.getAllDeliveries()
     val allAuditLogs: Flow<List<AuditLog>> = auditLogDao.getAllAuditLogs()
+    val allDesignImages: Flow<List<ProductDesignImage>> = productDesignImageDao?.getAllDesignImages() ?: kotlinx.coroutines.flow.flowOf(emptyList())
+
+    suspend fun insertDesignImage(image: ProductDesignImage) = withContext(Dispatchers.IO) {
+        productDesignImageDao?.insertDesignImage(image)
+    }
+
+    suspend fun insertDesignImages(images: List<ProductDesignImage>) = withContext(Dispatchers.IO) {
+        productDesignImageDao?.insertDesignImages(images)
+    }
+
+    suspend fun setDesignAsPrimary(id: String, category: String) = withContext(Dispatchers.IO) {
+        productDesignImageDao?.resetCategoryPrimary(category)
+        productDesignImageDao?.setDesignAsPrimary(id)
+    }
+
+    suspend fun toggleDesignFavorite(id: String, isFavorite: Boolean) = withContext(Dispatchers.IO) {
+        productDesignImageDao?.toggleFavorite(id, isFavorite)
+    }
+
+    suspend fun softDeleteDesignImage(id: String) = withContext(Dispatchers.IO) {
+        productDesignImageDao?.softDeleteDesignImage(id)
+    }
+
+    suspend fun hardDeleteDesignImage(id: String) = withContext(Dispatchers.IO) {
+        productDesignImageDao?.hardDeleteDesignImage(id)
+    }
+
+    fun getDesignImagesByCategory(category: String): Flow<List<ProductDesignImage>> {
+        return productDesignImageDao?.getDesignImagesByCategory(category) ?: kotlinx.coroutines.flow.flowOf(emptyList())
+    }
+
+    fun getDesignImagesForProduct(productId: String): Flow<List<ProductDesignImage>> {
+        return productDesignImageDao?.getDesignImagesForProduct(productId) ?: kotlinx.coroutines.flow.flowOf(emptyList())
+    }
+
 
     suspend fun insertProfile(profile: CustomerProfile): Long = withContext(Dispatchers.IO) {
         customerProfileDao.insertProfile(profile)
@@ -778,6 +814,224 @@ class SalesRepository(
                 )
             )
         }
+
+        // Seed initial high quality Bekansi Design Gallery showroom imagery
+        productDesignImageDao?.let { designDao ->
+            val currentDesigns = designDao.getAllDesignImages().first()
+            if (currentDesigns.isEmpty()) {
+                val seedDesigns = listOf(
+                    ProductDesignImage(
+                        id = "DSG-001",
+                        tenantId = "tenant_bekansi_ethiopia",
+                        productId = "1",
+                        productName = "Wanza Curved L-Sofa 'Gara'",
+                        category = "Sofa",
+                        sku = "SOF-WNZ-001",
+                        description = "Bespoke Ethiopian Wanza hardwood curved sectional upholstered in rich emerald velvet.",
+                        dimensions = "270cm x 180cm x 85cm",
+                        color = "Emerald Green & Warm Wanza",
+                        material = "Solid Wanza (Cordia Africana)",
+                        price = 135000.0,
+                        tags = "Luxury, Modern, Wanza, Living Room, Curved Sofa",
+                        designType = "Showroom Piece",
+                        roomType = "Living Room",
+                        notes = "Flagship showroom display piece at Bole branch.",
+                        imageUri = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800",
+                        publicUrl = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800",
+                        isPrimary = true,
+                        sortOrder = 1,
+                        isFavorite = true,
+                        uploadedBy = "Senior Designer (Bole)"
+                    ),
+                    ProductDesignImage(
+                        id = "DSG-002",
+                        tenantId = "tenant_bekansi_ethiopia",
+                        productId = "1",
+                        productName = "Wanza Curved L-Sofa 'Gara' (Side Angle)",
+                        category = "Sofa",
+                        sku = "SOF-WNZ-001",
+                        description = "Detailed profile showcasing solid hand-carved Wanza armrests and brass footings.",
+                        dimensions = "270cm x 180cm x 85cm",
+                        color = "Emerald Green",
+                        material = "Solid Wanza Hardwood",
+                        price = 135000.0,
+                        tags = "Side Angle, Detail, Wanza, Modern",
+                        designType = "Showroom Piece",
+                        roomType = "Living Room",
+                        notes = "Detail photo showing woodwork joints.",
+                        imageUri = "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800",
+                        publicUrl = "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800",
+                        isPrimary = false,
+                        sortOrder = 2,
+                        isFavorite = false,
+                        uploadedBy = "Workshop Master"
+                    ),
+                    ProductDesignImage(
+                        id = "DSG-003",
+                        tenantId = "tenant_bekansi_ethiopia",
+                        productId = "2",
+                        productName = "Mahogany Dining Suite 'Zid'",
+                        category = "Dining Table",
+                        sku = "DIN-MHG-002",
+                        description = "8-seater grand Ethiopian Mahogany dining table with fluted pedestal base and leather chairs.",
+                        dimensions = "240cm x 110cm x 76cm",
+                        color = "Deep Mahogany Red",
+                        material = "Pure Ethiopian Mahogany (Zid)",
+                        price = 185000.0,
+                        tags = "Dining, Mahogany, Luxury, 8-Seater, Handcrafted",
+                        designType = "Showroom Piece",
+                        roomType = "Dining Room",
+                        notes = "Includes 8 carved genuine leather chairs.",
+                        imageUri = "https://images.unsplash.com/photo-1617806118233-18e1de247200?w=800",
+                        publicUrl = "https://images.unsplash.com/photo-1617806118233-18e1de247200?w=800",
+                        isPrimary = true,
+                        sortOrder = 1,
+                        isFavorite = true,
+                        uploadedBy = "Senior Designer (Bole)"
+                    ),
+                    ProductDesignImage(
+                        id = "DSG-004",
+                        tenantId = "tenant_bekansi_ethiopia",
+                        productId = "3",
+                        productName = "King Floating Bed 'Sheger'",
+                        category = "Bed",
+                        sku = "BED-GRR-003",
+                        description = "Contemporary floating king bed in wild-grain Ethiopian Acacia with integrated LED underglow and floating side tables.",
+                        dimensions = "200cm x 220cm x 110cm",
+                        color = "Golden Honey Acacia",
+                        material = "Kiln-dried Acacia (Grar)",
+                        price = 110000.0,
+                        tags = "Modern, Floating Bed, Bedroom, LED, Acacia, King Size",
+                        designType = "Showroom Piece",
+                        roomType = "Master Bedroom",
+                        notes = "Customer favorite for luxury villa master bedrooms.",
+                        imageUri = "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800",
+                        publicUrl = "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800",
+                        isPrimary = true,
+                        sortOrder = 1,
+                        isFavorite = true,
+                        uploadedBy = "Lead Interior Architect"
+                    ),
+                    ProductDesignImage(
+                        id = "DSG-005",
+                        tenantId = "tenant_bekansi_ethiopia",
+                        productId = "3",
+                        productName = "King Floating Bed 'Sheger' (Headboard Detail)",
+                        category = "Bed",
+                        sku = "BED-GRR-003",
+                        description = "Close up texture of live edge Acacia headboard with built-in reading sconces.",
+                        dimensions = "200cm x 110cm",
+                        color = "Golden Honey",
+                        material = "Acacia Wood",
+                        price = 110000.0,
+                        tags = "Headboard, Detail, Bedroom, Live Edge",
+                        designType = "Workshop In-Progress",
+                        roomType = "Master Bedroom",
+                        notes = "Macro view of wood grain finish.",
+                        imageUri = "https://images.unsplash.com/photo-1540518614846-7ede433c4550?w=800",
+                        publicUrl = "https://images.unsplash.com/photo-1540518614846-7ede433c4550?w=800",
+                        isPrimary = false,
+                        sortOrder = 2,
+                        isFavorite = false,
+                        uploadedBy = "Workshop Master"
+                    ),
+                    ProductDesignImage(
+                        id = "DSG-006",
+                        tenantId = "tenant_bekansi_ethiopia",
+                        productId = "",
+                        productName = "Bespoke Glass Front Walk-In Wardrobe",
+                        category = "Wardrobe",
+                        sku = "WRD-BSK-004",
+                        description = "Floor-to-ceiling modular wardrobe with smoked bronze glass doors, sensor LED illumination, and velvet jewelry drawers.",
+                        dimensions = "320cm x 260cm x 60cm",
+                        color = "Smoked Bronze & Dark Oak",
+                        material = "High Density Board & Tempered Glass",
+                        price = 220000.0,
+                        tags = "Wardrobe, Walk-In, Glass Doors, LED, Luxury, Modern",
+                        designType = "Custom Client Design",
+                        roomType = "Master Bedroom",
+                        notes = "Installed at Old Airport Luxury Penthouse.",
+                        imageUri = "https://images.unsplash.com/photo-1558997519-83ea9252def8?w=800",
+                        publicUrl = "https://images.unsplash.com/photo-1558997519-83ea9252def8?w=800",
+                        isPrimary = true,
+                        sortOrder = 1,
+                        isFavorite = true,
+                        uploadedBy = "Lead Interior Architect"
+                    ),
+                    ProductDesignImage(
+                        id = "DSG-007",
+                        tenantId = "tenant_bekansi_ethiopia",
+                        productId = "",
+                        productName = "Italian Acrylic Kitchen Island & Cabinets",
+                        category = "Kitchen Cabinet",
+                        sku = "KIT-MOD-005",
+                        description = "Ultra high-gloss anti-scratch acrylic kitchen cabinets with quartzite waterfall island and Blum soft-close hardware.",
+                        dimensions = "400cm x 240cm",
+                        color = "Matte Anthracite & White Quartz",
+                        material = "Acrylic MDF & Calacatta Quartz",
+                        price = 340000.0,
+                        tags = "Kitchen, Island, Acrylic, Quartz, Modern, Custom",
+                        designType = "Custom Client Design",
+                        roomType = "Kitchen",
+                        notes = "Turnkey kitchen refit project.",
+                        imageUri = "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=800",
+                        publicUrl = "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=800",
+                        isPrimary = true,
+                        sortOrder = 1,
+                        isFavorite = false,
+                        uploadedBy = "Senior Designer (Bole)"
+                    ),
+                    ProductDesignImage(
+                        id = "DSG-008",
+                        tenantId = "tenant_bekansi_ethiopia",
+                        productId = "4",
+                        productName = "Dual-tone Credenza & TV Console 'Bunna'",
+                        category = "TV Stand",
+                        sku = "TVS-BNN-006",
+                        description = "Floating TV wall console featuring acoustic fluted timber slat backdrop and push-to-open media compartments.",
+                        dimensions = "220cm x 45cm x 40cm",
+                        color = "Walnut & Matte Black",
+                        material = "Wanza & Solid Mahogany",
+                        price = 48000.0,
+                        tags = "TV Stand, Fluted Wood, Acoustic, Modern, Living Room",
+                        designType = "Showroom Piece",
+                        roomType = "Living Room",
+                        notes = "In stock for immediate delivery in Addis Ababa.",
+                        imageUri = "https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800",
+                        publicUrl = "https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800",
+                        isPrimary = true,
+                        sortOrder = 1,
+                        isFavorite = true,
+                        uploadedBy = "Sales Agent (Bole Showroom)"
+                    ),
+                    ProductDesignImage(
+                        id = "DSG-009",
+                        tenantId = "tenant_bekansi_ethiopia",
+                        productId = "5",
+                        productName = "Executive Mahogany Desk 'Abay'",
+                        category = "Office Furniture",
+                        sku = "OFF-ABY-007",
+                        description = "Presidential executive office desk with genuine leather writing inlay, hidden cable management, and side credenza.",
+                        dimensions = "220cm x 100cm x 76cm",
+                        color = "Dark Heirloom Mahogany",
+                        material = "Solid Mahogany & Brass Accents",
+                        price = 145000.0,
+                        tags = "Executive Desk, Office, Mahogany, Corporate, Luxury",
+                        designType = "Showroom Piece",
+                        roomType = "Office",
+                        notes = "Crafted for high-level corporate directors.",
+                        imageUri = "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800",
+                        publicUrl = "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800",
+                        isPrimary = true,
+                        sortOrder = 1,
+                        isFavorite = true,
+                        uploadedBy = "Senior Designer (Bole)"
+                    )
+                )
+                designDao.insertDesignImages(seedDesigns)
+            }
+        }
     }
 }
+
 

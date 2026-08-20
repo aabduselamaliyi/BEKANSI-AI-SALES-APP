@@ -77,8 +77,10 @@ class MainActivity : ComponentActivity() {
             orderRecordDao = database.orderRecordDao(),
             warehouseItemDao = database.warehouseItemDao(),
             deliveryRecordDao = database.deliveryRecordDao(),
-            auditLogDao = database.auditLogDao()
+            auditLogDao = database.auditLogDao(),
+            productDesignImageDao = database.productDesignImageDao()
         )
+
         val mediaRepository = MediaRepository(database.mediaAssetDao())
 
         val factory = SalesViewModelFactory(repository, mediaRepository)

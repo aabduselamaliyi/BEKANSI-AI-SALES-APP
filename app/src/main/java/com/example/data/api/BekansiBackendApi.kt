@@ -11,6 +11,8 @@ import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.*
 import java.util.concurrent.TimeUnit
 
@@ -137,6 +139,20 @@ interface BekansiBackendApi {
 
     @GET("api/v1/health")
     suspend fun checkHealth(): retrofit2.Response<ApiResponse<Map<String, Any>>>
+
+    @Multipart
+    @POST("api/v1/dam/upload")
+    suspend fun uploadDesignImage(
+        @Part file: MultipartBody.Part,
+        @Part("product_name") productName: RequestBody,
+        @Part("category") category: RequestBody,
+        @Part("sku") sku: RequestBody,
+        @Part("tenant_id") tenantId: RequestBody,
+        @Part("design_type") designType: RequestBody,
+        @Part("room_type") roomType: RequestBody,
+        @Part("is_primary") isPrimary: RequestBody,
+        @Part("price") price: RequestBody
+    ): retrofit2.Response<ApiResponse<DesignUploadResultData>>
 }
 
 /**

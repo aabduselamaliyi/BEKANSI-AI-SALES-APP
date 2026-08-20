@@ -50,7 +50,7 @@ fun DesignAlbumsTab(viewModel: SalesViewModel) {
     val selectedLanguage by viewModel.selectedLanguage.collectAsState()
 
     // Sub tabs within Albums Module
-    var activeSubTab by remember { mutableStateOf("GALLERY") } // GALLERY, ADVISOR, WISHLIST, ADMIN_DASHBOARD
+    var activeSubTab by remember { mutableStateOf("DESIGN_GALLERY") } // DESIGN_GALLERY, GALLERY, PORTFOLIO, DAM_UPLOAD, WISHLIST, ADMIN_DASHBOARD
 
     // Selected album for detail modal dialog
     var selectedAlbumForDetail by remember { mutableStateOf<ProductAlbum?>(null) }
@@ -68,11 +68,18 @@ fun DesignAlbumsTab(viewModel: SalesViewModel) {
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             SubTabButton(
-                title = "Showroom Gallery",
+                title = "Design Gallery",
                 icon = Icons.Default.Home,
+                isSelected = activeSubTab == "DESIGN_GALLERY",
+                onClick = { activeSubTab = "DESIGN_GALLERY" }
+            )
+            SubTabButton(
+                title = "Showroom Catalog",
+                icon = Icons.Default.Place,
                 isSelected = activeSubTab == "GALLERY",
                 onClick = { activeSubTab = "GALLERY" }
             )
+
             SubTabButton(
                 title = "Design Portfolio",
                 icon = Icons.Default.Star,
@@ -116,6 +123,9 @@ fun DesignAlbumsTab(viewModel: SalesViewModel) {
         // Toggle modules
         Box(modifier = Modifier.weight(1f)) {
             when (activeSubTab) {
+                "DESIGN_GALLERY" -> {
+                    DesignGalleryTab(viewModel = viewModel)
+                }
                 "GALLERY" -> {
                     GalleryCatalogModule(
                         categories = categories,
@@ -132,6 +142,7 @@ fun DesignAlbumsTab(viewModel: SalesViewModel) {
                         }
                     )
                 }
+
                 "PORTFOLIO" -> {
                     InteriorDesignPortfolioModule(context, viewModel)
                 }

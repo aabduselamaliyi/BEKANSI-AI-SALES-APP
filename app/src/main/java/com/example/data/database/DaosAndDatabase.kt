@@ -262,6 +262,42 @@ interface MediaAssetDao {
     suspend fun deleteMediaAssetById(id: String)
 }
 
+@Dao
+interface ProductDesignImageDao {
+    @Query("SELECT * FROM product_design_images WHERE isDeleted = 0 ORDER BY isPrimary DESC, createdAt DESC")
+    fun getAllDesignImages(): Flow<List<ProductDesignImage>>
+
+    @Query("SELECT * FROM product_design_images WHERE category = :category AND isDeleted = 0 ORDER BY isPrimary DESC, createdAt DESC")
+    fun getDesignImagesByCategory(category: String): Flow<List<ProductDesignImage>>
+
+    @Query("SELECT * FROM product_design_images WHERE productId = :productId AND isDeleted = 0 ORDER BY isPrimary DESC, sortOrder ASC")
+    fun getDesignImagesForProduct(productId: String): Flow<List<ProductDesignImage>>
+
+    @Query("SELECT * FROM product_design_images WHERE id = :id AND isDeleted = 0")
+    suspend fun getDesignImageById(id: String): ProductDesignImage?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDesignImage(image: ProductDesignImage)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDesignImages(images: List<ProductDesignImage>)
+
+    @Query("UPDATE product_design_images SET isPrimary = 0 WHERE category = :category")
+    suspend fun resetCategoryPrimary(category: String)
+
+    @Query("UPDATE product_design_images SET isPrimary = 1 WHERE id = :id")
+    suspend fun setDesignAsPrimary(id: String)
+
+    @Query("UPDATE product_design_images SET isFavorite = :isFavorite WHERE id = :id")
+    suspend fun toggleFavorite(id: String, isFavorite: Boolean)
+
+    @Query("UPDATE product_design_images SET isDeleted = 1 WHERE id = :id")
+    suspend fun softDeleteDesignImage(id: String)
+
+    @Query("DELETE FROM product_design_images WHERE id = :id")
+    suspend fun hardDeleteDesignImage(id: String)
+}
+
 @Database(
     entities = [
         Lead::class, 
@@ -280,9 +316,10 @@ interface MediaAssetDao {
         WarehouseItem::class,
         DeliveryRecord::class,
         AuditLog::class,
-        MediaAsset::class
+        MediaAsset::class,
+        ProductDesignImage::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -303,6 +340,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun deliveryRecordDao(): DeliveryRecordDao
     abstract fun auditLogDao(): AuditLogDao
     abstract fun mediaAssetDao(): MediaAssetDao
+    abstract fun productDesignImageDao(): ProductDesignImageDao
+
 
     companion object {
         @Volatile
@@ -505,6 +544,46 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Migration from version 4 to version 5 (Design Gallery & Multi-Image Product DAM)
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `product_design_images` (
+                        `id` TEXT NOT NULL PRIMARY KEY,
+                        `tenantId` TEXT NOT NULL,
+                        `productId` TEXT NOT NULL,
+                        `productName` TEXT NOT NULL,
+                        `category` TEXT NOT NULL,
+                        `sku` TEXT NOT NULL,
+                        `description` TEXT NOT NULL,
+                        `dimensions` TEXT NOT NULL,
+                        `color` TEXT NOT NULL,
+                        `material` TEXT NOT NULL,
+                        `price` REAL NOT NULL,
+                        `tags` TEXT NOT NULL,
+                        `designType` TEXT NOT NULL,
+                        `roomType` TEXT NOT NULL,
+                        `notes` TEXT NOT NULL,
+                        `imageUri` TEXT NOT NULL,
+                        `publicUrl` TEXT NOT NULL,
+                        `mimeType` TEXT NOT NULL,
+                        `fileSize` TEXT NOT NULL,
+                        `isPrimary` INTEGER NOT NULL,
+                        `sortOrder` INTEGER NOT NULL,
+                        `isFavorite` INTEGER NOT NULL,
+                        `uploadedBy` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `isDeleted` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun getDatabase(context: android.content.Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -512,12 +591,13 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "bekansi_sales_db"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
                 INSTANCE = instance
                 instance
             }
         }
+
     }
 }
 

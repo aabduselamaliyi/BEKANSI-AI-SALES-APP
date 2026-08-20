@@ -221,5 +221,36 @@ data class MediaAsset(
     val timestamp: Long = System.currentTimeMillis()
 ) : Serializable
 
+@Entity(tableName = "product_design_images")
+data class ProductDesignImage(
+    @PrimaryKey val id: String, // Unique UUID or timestamp ID
+    val tenantId: String = "tenant_bekansi_ethiopia",
+    val productId: String = "", // Links to Product ID or SKU
+    val productName: String,
+    val category: String, // Sofa, Bed, Wardrobe, Kitchen Cabinet, TV Stand, Dining Table, Office Furniture, Custom Furniture, Interior Design
+    val sku: String = "",
+    val description: String = "",
+    val dimensions: String = "",
+    val color: String = "",
+    val material: String = "",
+    val price: Double = 0.0,
+    val tags: String = "", // Comma separated: Modern, Luxury, Walnut, Bedroom
+    val designType: String = "Showroom Piece", // Showroom Piece, Custom Client Design, 3D Render, Workshop In-Progress
+    val roomType: String = "Living Room", // Living Room, Master Bedroom, Kitchen, Office, Hotel Suite
+    val notes: String = "",
+    val imageUri: String, // Local device/cache content URI or local file path
+    val publicUrl: String = "", // CDN / Remote Storage URL
+    val mimeType: String = "image/jpeg",
+    val fileSize: String = "2.4 MB",
+    val isPrimary: Boolean = false,
+    val sortOrder: Int = 0,
+    val isFavorite: Boolean = false,
+    val uploadedBy: String = "Sales Agent (Bole Showroom)",
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false // Soft deletion safety flag
+) : Serializable
+
+
 
 
