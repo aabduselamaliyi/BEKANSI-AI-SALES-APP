@@ -1,85 +1,115 @@
-/**
- * BEKANSI AI SALES PLATFORM - WHATSAPP/WHATSAPP.SERVICE.JS (ESM)
- * Meta WhatsApp Cloud API Service
- */
+const GRAPH_VERSION =
+  process.env.WHATSAPP_API_VERSION ||
+  "v23.0";
 
-import env from '../config/env.js';
-import logger from '../config/logger.js';
 
-export const whatsappService = {
-    /**
-     * Sends a text message via WhatsApp Cloud API
-     */
-    sendTextMessage: async (recipientPhone, text) => {
-        const cleanPhone = (recipientPhone || '').replace(/[^0-9]/g, '');
+const PHONE_NUMBER_ID =
+  process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-        if (!env.whatsapp.accessToken || !env.whatsapp.phoneNumberId) {
-            logger.info('WhatsApp credentials not set in .env; running in verified simulation mode', {
-                recipient: cleanPhone,
-                textSnippet: text.slice(0, 80)
-            });
-            return {
-                simulated: true,
-                messageId: `wam_sim_${Date.now()}`,
-                status: 'delivered'
-            };
-        }
 
-        try {
-            const endpoint = `${env.whatsapp.baseUrl}/${env.whatsapp.apiVersion}/${env.whatsapp.phoneNumberId}/messages`;
-            const payload = {
-                messaging_product: 'whatsapp',
-                recipient_type: 'individual',
-                to: cleanPhone,
-                type: 'text',
-                text: { body: text }
-            };
+const ACCESS_TOKEN =
+  process.env.WHATSAPP_ACCESS_TOKEN;
 
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${env.whatsapp.accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
 
-            const data = await response.json();
-            if (!response.ok) {
-                logger.error('WhatsApp API dispatch failed', { error: data });
-                return { success: false, error: data };
-            }
+const BASE_URL =
+  `https://graph.facebook.com/${GRAPH_VERSION}/${PHONE_NUMBER_ID}/messages`;
 
-            return { success: true, data };
-        } catch (error) {
-            logger.error('Error in sendTextMessage to WhatsApp', { error: error.message });
-            return { success: false, error: error.message };
-        }
-    },
 
-    /**
-     * Mark message as read
-     */
-    markMessageAsRead: async (messageId) => {
-        if (!env.whatsapp.accessToken || !env.whatsapp.phoneNumberId) return { simulated: true };
-        try {
-            const endpoint = `${env.whatsapp.baseUrl}/${env.whatsapp.apiVersion}/${env.whatsapp.phoneNumberId}/messages`;
-            await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${env.whatsapp.accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    messaging_product: 'whatsapp',
-                    status: 'read',
-                    message_id: messageId
-                })
-            });
-        } catch (e) {
-            logger.warn('Failed to mark message as read', { error: e.message });
-        }
+async function whatsappRequest(body) {
+
+  // If credentials are not configured, simulate to allow local testing
+  if (!ACCESS_TOKEN || !PHONE_NUMBER_ID) {
+    return {
+      messaging_product: "whatsapp",
+      contacts: [{ input: body.to, wa_id: body.to }],
+      messages: [{ id: `wamid.sim_${Date.now()}` }],
+      simulated: true
+    };
+  }
+
+  const response = await fetch(
+    BASE_URL,
+    {
+      method: "POST",
+
+      headers: {
+        "Authorization":
+          `Bearer ${ACCESS_TOKEN}`,
+
+        "Content-Type":
+          "application/json"
+      },
+
+      body: JSON.stringify(body)
     }
+  );
+
+
+  const data =
+    await response.json();
+
+
+  if (!response.ok) {
+
+    console.error(
+      "WhatsApp API error:",
+      JSON.stringify(data, null, 2)
+    );
+
+    throw new Error(
+      data?.error?.message ||
+      "WhatsApp API request failed"
+    );
+  }
+
+
+  return data;
+}
+
+
+export async function sendWhatsAppText(
+  recipientPhone,
+  message
+) {
+
+  return await whatsappRequest({
+
+    messaging_product: "whatsapp",
+
+    recipient_type: "individual",
+
+    to: recipientPhone,
+
+    type: "text",
+
+    text: {
+      preview_url: false,
+      body: message
+    }
+
+  });
+}
+
+
+export async function markWhatsAppMessageRead(
+  messageId
+) {
+
+  return await whatsappRequest({
+
+    messaging_product: "whatsapp",
+
+    status: "read",
+
+    message_id: messageId
+
+  });
+}
+
+// Backward-compatibility wrapper for existing modules
+export const whatsappService = {
+  sendTextMessage: sendWhatsAppText,
+  markMessageAsRead: markWhatsAppMessageRead
 };
 
 export default whatsappService;

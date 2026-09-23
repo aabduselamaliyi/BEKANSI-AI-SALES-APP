@@ -1,122 +1,284 @@
-/**
- * BEKANSI AI SALES PLATFORM - AI/AGENT.JS (ESM)
- * Conversational Sales Agent using Gemini API SDK with fallback rule-based reasoning
- */
+import { GoogleGenAI } from "@google/genai";
+import env from "../config/env.js";
+import logger from "../config/logger.js";
 
-import { GoogleGenAI } from '@google/genai';
-import env from '../config/env.js';
-import logger from '../config/logger.js';
-import { BEKANSI_SYSTEM_PROMPT } from './prompts.js';
-import tools from './tools.js';
+import {
+  BEKANSI_SYSTEM_PROMPT
+} from "./prompts.js";
 
-let genAiClient = null;
-if (env.ai.apiKey && !env.ai.apiKey.includes('your_gemini')) {
-    try {
-        genAiClient = new GoogleGenAI({ apiKey: env.ai.apiKey });
-    } catch (e) {
-        logger.warn('Failed to initialize GoogleGenAI client with provided key', { error: e.message });
-    }
+import {
+  BEKANSI_TOOLS,
+  executeTool
+} from "./tools.js";
+
+import {
+  updateConversation
+} from "../crm/crm.js";
+
+
+let ai = null;
+if (env.ai.apiKey && !env.ai.apiKey.includes("your_gemini")) {
+  try {
+    ai = new GoogleGenAI({
+      apiKey: env.ai.apiKey
+    });
+  } catch (e) {
+    logger.warn("Failed to initialize GoogleGenAI client with provided key", { error: e.message });
+  }
 }
 
-export const agent = {
-    /**
-     * Main conversation handler for customer inquiries
-     */
-    processCustomerMessage: async ({
-        customerPhone,
-        customerName = null,
-        message,
-        customerId = null,
-        conversationId = null,
-        language = 'en',
-        history = []
-    }) => {
-        logger.info('Processing customer message in Bekansi AI Agent', { customerPhone, messageLength: message.length });
+const MODEL =
+  process.env.GEMINI_MODEL ||
+  env.ai.model ||
+  "gemini-3.8-flash";
 
-        const context = {
-            customerPhone,
-            customerName: customerName || 'Valued Customer',
-            customerId,
-            conversationId,
-            language
+
+export async function generateBekansiReply({
+  conversation,
+  customer,
+  message
+}) {
+
+  const context = {
+    customerId: customer?.id,
+    conversationId: conversation?.id,
+    customerPhone: customer?.phone
+  };
+
+  // If GoogleGenAI client is unavailable or Interactions API throws, fallback gracefully
+  if (!ai || !ai.interactions) {
+    return generateFallbackReply({ conversation, customer, message, context });
+  }
+
+  let interaction;
+
+  try {
+    // ==========================================================
+    // FIRST MESSAGE
+    // ==========================================================
+
+    if (!conversation?.gemini_interaction_id) {
+
+      interaction =
+        await ai.interactions.create({
+
+          model: MODEL,
+
+          system_instruction:
+            BEKANSI_SYSTEM_PROMPT,
+
+          input: `
+Customer phone: ${customer?.phone}
+
+Customer name:
+${customer?.full_name || "Unknown"}
+
+Customer type:
+${customer?.customer_type || "UNKNOWN"}
+
+Latest customer message:
+${message}
+`,
+
+          tools: BEKANSI_TOOLS,
+
+          generation_config: {
+            temperature: 0.4,
+            max_output_tokens: 500
+          }
+
+        });
+
+    }
+
+    // ==========================================================
+    // CONTINUE EXISTING CONVERSATION
+    // ==========================================================
+
+    else {
+
+      interaction =
+        await ai.interactions.create({
+
+          model: MODEL,
+
+          system_instruction:
+            BEKANSI_SYSTEM_PROMPT,
+
+          previous_interaction_id:
+            conversation.gemini_interaction_id,
+
+          input: message,
+
+          tools: BEKANSI_TOOLS,
+
+          generation_config: {
+            temperature: 0.4,
+            max_output_tokens: 500
+          }
+
+        });
+
+    }
+
+
+    // ==========================================================
+    // TOOL LOOP
+    // ==========================================================
+
+    while (true) {
+
+      const functionCalls =
+        (interaction?.steps || [])
+          .filter(
+            step =>
+              step.type === "function_call"
+          );
+
+
+      if (functionCalls.length === 0) {
+
+        const output =
+          interaction?.output_text?.trim();
+
+        if (conversation?.id) {
+          await updateConversation(
+            conversation.id,
+            {
+              gemini_interaction_id:
+                interaction?.id,
+              last_ai_message_at:
+                new Date().toISOString()
+            }
+          );
+        }
+
+        return {
+          text:
+            output ||
+            "Thank you for contacting BEKANSI Furniture. How can we help you?",
+          interactionId:
+            interaction?.id
         };
+      }
 
-        // Detect language from text
-        let detectedLang = language;
-        if (/[\u1200-\u137F]/.test(message)) {
-            detectedLang = 'am'; // Amharic
-        } else if (/\b(akkam|nagaa|akkamitti|barbaada|maaloo|galatoomi|fayyisaa)\b/i.test(message)) {
-            detectedLang = 'om'; // Afaan Oromo
+
+      // Execute each function call.
+      // The Interactions API expects function_result
+      // steps to be returned to Gemini.
+
+      const results = [];
+
+      for (const call of functionCalls) {
+
+        let result;
+
+        try {
+
+          result =
+            await executeTool(
+              call.name,
+              call.arguments || {},
+              context
+            );
+
+        } catch (error) {
+
+          result = {
+            success: false,
+            error: error.message
+          };
+
         }
 
-        const toolsInvoked = [];
-        const lower = message.toLowerCase();
+        results.push({
+          type: "function_result",
 
-        // 1. Tool intent detection & execution
-        if (lower.includes('bed') || lower.includes('አልጋ') || lower.includes('siree')) {
-            await tools.executeTool('searchProductDatabase', { category: 'Beds' }, context);
-            toolsInvoked.push('searchProductDatabase');
-            if (lower.includes('price') || lower.includes('ዋጋ') || lower.includes('gatii') || lower.includes('how much')) {
-                await tools.executeTool('checkPriceAndQuotation', {
-                    sku: 'BK-BED-ENTOTO',
-                    productName: 'Entoto Luxury Smart Bed',
-                    customerName: context.customerName,
-                    customerPhone
-                }, context);
-                toolsInvoked.push('checkPriceAndQuotation');
+          name: call.name,
+
+          call_id: call.id,
+
+          result: [
+            {
+              type: "text",
+              text: JSON.stringify(result)
             }
-        } else if (lower.includes('sofa') || lower.includes('ሶፋ') || lower.includes('soofaa')) {
-            await tools.executeTool('searchProductDatabase', { category: 'Sofas' }, context);
-            toolsInvoked.push('searchProductDatabase');
-            if (lower.includes('price') || lower.includes('ዋጋ') || lower.includes('gatii')) {
-                await tools.executeTool('checkPriceAndQuotation', {
-                    sku: 'BK-SOF-BOLE',
-                    productName: 'Bole Luxury Sectional L-Shape Sofa',
-                    customerName: context.customerName,
-                    customerPhone
-                }, context);
-                toolsInvoked.push('checkPriceAndQuotation');
-            }
-        } else if (lower.includes('kitchen') || lower.includes('ኩሽና') || lower.includes('kushiinaa')) {
-            await tools.executeTool('searchProductDatabase', { category: 'Kitchen Cabinets' }, context);
-            toolsInvoked.push('searchProductDatabase');
-        } else if (lower.includes('wardrobe') || lower.includes('ቁምሳጥን') || lower.includes('wardaarobii')) {
-            await tools.executeTool('searchProductDatabase', { category: 'Wardrobes' }, context);
-            toolsInvoked.push('searchProductDatabase');
-        }
+          ]
+        });
+      }
 
-        // 2. Lead classification
-        let leadStatus = '🟡 Warm Lead';
-        if (lower.includes('order') || lower.includes('buy') || lower.includes('መግዛት') || lower.includes('bituu') || lower.includes('quote') || lower.includes('ዋጋ')) {
-            leadStatus = '🔥 Hot Lead';
-        } else if (lower.includes('hi') || lower.includes('hello') || lower.includes('ሰላም') || lower.includes('akkam')) {
-            leadStatus = '⚪ Cold Lead';
-        }
 
-        await tools.executeTool('classifyAndSaveLead', {
-            customerPhone,
-            customerName: context.customerName,
-            leadStatus,
-            productCategory: lower.includes('bed') ? 'Beds' : (lower.includes('sofa') ? 'Sofas' : 'Beds'),
-            purchaseTimeline: leadStatus === '🔥 Hot Lead' ? 'Ready to order' : 'Browsing'
-        }, context);
-        toolsInvoked.push('classifyAndSaveLead');
+      interaction =
+        await ai.interactions.create({
 
-        // 3. Human showroom handoff escalation
-        if (lower.includes('architect') || lower.includes('custom villa') || lower.includes('consultant') || lower.includes('አናጋግሩኝ')) {
-            await tools.executeTool('requestHumanHandoff', {
-                customerPhone,
-                customerName: context.customerName,
-                reason: 'Customer requested direct architectural consultant consultation'
-            }, context);
-            toolsInvoked.push('requestHumanHandoff');
-        }
+          model: MODEL,
 
-        // 4. Structured Tri-lingual Response Formulation (Strict 6-point format)
-        let agentReply = '';
+          system_instruction:
+            BEKANSI_SYSTEM_PROMPT,
 
-        if (detectedLang === 'am') {
-            agentReply = `📌 Response  
+          previous_interaction_id:
+            interaction.id,
+
+          input: results,
+
+          tools: BEKANSI_TOOLS,
+
+          generation_config: {
+            temperature: 0.4,
+            max_output_tokens: 500
+          }
+
+        });
+
+    }
+  } catch (err) {
+    logger.warn("Interactions API call encountered an error, falling back to standard sales engine", { error: err.message });
+    return generateFallbackReply({ conversation, customer, message, context });
+  }
+}
+
+/**
+ * Intelligent sales engine fallback conforming strictly to the 6-point Bekansi format
+ */
+async function generateFallbackReply({ conversation, customer, message, context }) {
+  const customerPhone = customer?.phone || context?.customerPhone || "+251911223344";
+  const lower = (message || "").toLowerCase();
+
+  let detectedLang = "en";
+  if (/[\u1200-\u137F]/.test(message)) {
+    detectedLang = "am";
+  } else if (/\b(akkam|nagaa|akkamitti|barbaada|maaloo|galatoomi|fayyisaa)\b/i.test(message)) {
+    detectedLang = "om";
+  }
+
+  let leadStatus = "🟡 Warm Lead";
+  if (lower.includes("order") || lower.includes("buy") || lower.includes("መግዛት") || lower.includes("bituu") || lower.includes("quote") || lower.includes("ዋጋ")) {
+    leadStatus = "🔥 Hot Lead";
+  } else if (lower.includes("hi") || lower.includes("hello") || lower.includes("ሰላም") || lower.includes("akkam")) {
+    leadStatus = "⚪ Cold Lead";
+  }
+
+  // Auto trigger product discovery
+  if (lower.includes("bed") || lower.includes("አልጋ") || lower.includes("siree")) {
+    await executeTool("search_products", { query: "bed" }, context);
+    if (lower.includes("price") || lower.includes("ዋጋ") || lower.includes("gatii")) {
+      await executeTool("get_product_price", { product_sku: "BK-BED-ENTOTO" }, context);
+    }
+  } else if (lower.includes("sofa") || lower.includes("ሶፋ") || lower.includes("soofaa")) {
+    await executeTool("search_products", { query: "sofa" }, context);
+  }
+
+  // Update lead
+  await executeTool("create_or_update_lead", {
+    customer_type: customer?.customer_type || "B2C",
+    product_category: lower.includes("bed") ? "Beds" : (lower.includes("sofa") ? "Sofas" : "Beds"),
+    purchase_timeline: leadStatus === "🔥 Hot Lead" ? "Immediate" : "Researching",
+    lead_score: leadStatus === "🔥 Hot Lead" ? 85 : 50
+  }, context);
+
+  let replyText = "";
+  if (detectedLang === "am") {
+    replyText = `📌 Response  
 እንኳን ወደ በካንሲ ፈርኒቸር እና ኢንቴሪየር ዲዛይን በደህና መጡ! 🇪🇹🛋️ የፈለጉትን የቤትና የቢሮ ፈርኒቸር በጥራትና በቅንጦት እናዘጋጃለን። የቦሌ ሮያል ኪንግ ቬልቬት አልጋችን (85,000 ብር) እና የእንጦጦ ቅንጡ L-ቅርጽ ሳሎን ሶፋችን በምርጥ ቱርክ ቬልቬት የተመረቱ ናቸው።
 
 📌 Recommended Action  
@@ -127,7 +289,7 @@ ${leadStatus}
 
 📌 Information Collected  
 • ስልክ: ${customerPhone}
-• ፍላጎት: ${lower.includes('sofa') ? 'ሳሎን ሶፋ' : 'አልጋ እና የቤት ፈርኒቸር'}
+• ፍላጎት: ${lower.includes("sofa") ? "ሳሎን ሶፋ" : "አልጋ እና የቤት ፈርኒቸር"}
 
 📌 Missing Information  
 • ሙሉ ስም
@@ -136,8 +298,8 @@ ${leadStatus}
 
 📌 Suggested Follow-Up  
 ትክክለኛውን ልኬት ለመውሰድ ባለሙያዎቻችን ወደ ቤትዎ እንዲመጡ ቀጠሮ እንያዝልዎ?`;
-        } else if (detectedLang === 'om') {
-            agentReply = `📌 Response  
+  } else if (detectedLang === "om") {
+    replyText = `📌 Response  
 Baga gara Mana Meeshaa Manaa fi Dizaayinii Keessaa Bekansi nagaan dhuftan! 🇪🇹🛋️ Siree mootii Bolee Velvet (Qarshii 85,000) fi Soofaa qananii Entoto L-shape qulqullina olaanaadhaan qopheessinee jirra.
 
 📌 Recommended Action  
@@ -157,8 +319,8 @@ ${leadStatus}
 
 📌 Suggested Follow-Up  
 Ogeessi dizaayinii keenya iddoo keessan safaruuf yoom haa dhufu?`;
-        } else {
-            agentReply = `📌 Response  
+  } else {
+    replyText = `📌 Response  
 Welcome to Bekansi Furniture & Interior Design! 🇪🇹✨ We specialize in bespoke luxury furniture handcrafted with imported Turkish fabrics, German Blum soft-close fittings, and solid hardwood framing. Our signature Entoto Luxury Smart Bed (85,000 ETB) and Bole Sectional Sofa (145,000 ETB) are available for immediate custom fabrication.
 
 📌 Recommended Action  
@@ -169,7 +331,7 @@ ${leadStatus}
 
 📌 Information Collected  
 • Phone Number: ${customerPhone}
-• Product Interest: ${lower.includes('sofa') ? 'Luxury Sectional Sofa' : 'King Smart Bed / Living Room Furniture'}
+• Product Interest: ${lower.includes("sofa") ? "Luxury Sectional Sofa" : "King Smart Bed / Living Room Furniture"}
 
 📌 Missing Information  
 • Full Name
@@ -178,15 +340,47 @@ ${leadStatus}
 
 📌 Suggested Follow-Up  
 Would you like an official itemized quotation including free delivery and installation within Addis Ababa?`;
-        }
+  }
 
-        return {
-            agentReply,
-            leadStatus,
-            toolsInvoked,
-            language: detectedLang
-        };
-    }
+  return {
+    text: replyText,
+    interactionId: `local-${Date.now()}`
+  };
+}
+
+/**
+ * Compatibility processCustomerMessage for Webhook & Simulator callers
+ */
+export const agent = {
+  processCustomerMessage: async ({
+    customerPhone,
+    customerName = null,
+    message,
+    customerId = null,
+    conversationId = null
+  }) => {
+    const customer = {
+      id: customerId,
+      phone: customerPhone,
+      full_name: customerName
+    };
+    const conversation = {
+      id: conversationId
+    };
+
+    const reply = await generateBekansiReply({
+      conversation,
+      customer,
+      message
+    });
+
+    return {
+      agentReply: reply.text,
+      leadStatus: "🔥 Hot Lead",
+      toolsInvoked: ["generateBekansiReply"],
+      interactionId: reply.interactionId
+    };
+  }
 };
 
 export default agent;

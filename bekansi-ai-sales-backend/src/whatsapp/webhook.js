@@ -1,220 +1,382 @@
-/**
- * BEKANSI AI SALES PLATFORM - WHATSAPP/WEBHOOK.JS (ESM)
- * Express router handling Meta WhatsApp Webhook events and simulation endpoints
- */
+import express from "express";
 
-import express from 'express';
-import env from '../config/env.js';
-import logger from '../config/logger.js';
-import whatsappService from './whatsapp.service.js';
-import agent from '../ai/agent.js';
-import crm from '../crm/crm.js';
-import productService from '../products/products.js';
-import tools from '../ai/tools.js';
+import {
+  getOrCreateCustomer,
+  getOrCreateConversation,
+  saveInboundMessage,
+  saveOutboundMessage,
+  updateConversation
+} from "../crm/crm.js";
 
-const router = express.Router();
+import {
+  generateBekansiReply
+} from "../ai/agent.js";
 
-/**
- * GET /webhook
- * Meta Webhook Verification
- */
-router.get('/', (req, res) => {
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
-    const challenge = req.query['hub.challenge'];
+import {
+  sendWhatsAppText,
+  markWhatsAppMessageRead
+} from "./whatsapp.service.js";
 
-    if (mode && token) {
-        if (mode === 'subscribe' && token === env.whatsapp.verifyToken) {
-            logger.info('WhatsApp Webhook successfully verified with Meta');
-            return res.status(200).send(challenge);
-        } else {
-            logger.warn('WhatsApp Webhook verification failed - token mismatch', { providedToken: token });
-            return res.sendStatus(403);
-        }
+
+const router =
+  express.Router();
+
+
+// ============================================================
+// META WEBHOOK VERIFICATION
+// ============================================================
+
+router.get(
+  "/",
+
+  (req, res) => {
+
+    const mode =
+      req.query["hub.mode"];
+
+    const token =
+      req.query["hub.verify_token"];
+
+    const challenge =
+      req.query["hub.challenge"];
+
+
+    if (
+      mode === "subscribe" &&
+      token === (process.env.WHATSAPP_VERIFY_TOKEN || "bekansi_sales_verify_token_2025")
+    ) {
+
+      console.log(
+        "WhatsApp webhook verified."
+      );
+
+      return res
+        .status(200)
+        .send(challenge);
     }
-    return res.status(400).json({ error: 'Missing hub.mode or hub.verify_token' });
-});
 
-/**
- * POST /webhook
- * Meta Incoming Webhook Events
- */
-router.post('/', async (req, res) => {
-    const body = req.body;
 
-    // Immediately respond 200 OK to Meta to prevent retry loops
-    res.status(200).send('EVENT_RECEIVED');
+    return res
+      .sendStatus(403);
+  }
+);
 
-    if (body.object === 'whatsapp_business_account' || body.entry) {
-        try {
-            for (const entry of body.entry || []) {
-                for (const change of entry.changes || []) {
-                    const value = change.value;
-                    if (!value || !value.messages || value.messages.length === 0) continue;
 
-                    const contact = (value.contacts && value.contacts[0]) || {};
-                    const customerName = contact.profile ? contact.profile.name : 'Valued Customer';
-                    const messageObj = value.messages[0];
-                    const fromPhone = messageObj.from;
-                    const messageId = messageObj.id;
-                    const messageType = messageObj.type;
+// ============================================================
+// WHATSAPP EVENTS
+// ============================================================
 
-                    let incomingText = '';
-                    if (messageType === 'text') {
-                        incomingText = messageObj.text.body;
-                    } else if (messageType === 'interactive') {
-                        incomingText = (messageObj.interactive.button_reply && messageObj.interactive.button_reply.title) ||
-                                       (messageObj.interactive.list_reply && messageObj.interactive.list_reply.title) || '';
-                    } else {
-                        incomingText = `[Received ${messageType} attachment]`;
-                    }
+router.post(
+  "/",
 
-                    logger.info(`Received WhatsApp message from ${fromPhone}: "${incomingText}"`);
-                    await whatsappService.markMessageAsRead(messageId);
+  async (req, res) => {
 
-                    // 1. Sync Customer in CRM
-                    const customer = await crm.upsertCustomer({
-                        fullName: customerName,
-                        phone: fromPhone,
-                        source: 'WHATSAPP'
-                    });
+    // Acknowledge Meta quickly.
+    res.sendStatus(200);
 
-                    // 2. Sync Conversation in CRM
-                    const conversation = await crm.getOrCreateConversation({
-                        customerId: customer.id,
-                        whatsappPhone: fromPhone
-                    });
-
-                    // 3. Record Inbound Message
-                    await crm.recordMessage({
-                        conversationId: conversation.id,
-                        whatsappMessageId: messageId,
-                        direction: 'inbound',
-                        senderType: 'customer',
-                        messageType,
-                        text: incomingText
-                    });
-
-                    // 4. Process with Bekansi AI Agent
-                    const agentResult = await agent.processCustomerMessage({
-                        customerPhone: fromPhone,
-                        customerName,
-                        message: incomingText,
-                        customerId: customer.id,
-                        conversationId: conversation.id
-                    });
-
-                    // 5. Send Outbound WhatsApp Message
-                    await whatsappService.sendTextMessage(fromPhone, agentResult.agentReply);
-
-                    // 6. Record Outbound AI Message
-                    await crm.recordMessage({
-                        conversationId: conversation.id,
-                        direction: 'outbound',
-                        senderType: 'ai',
-                        messageType: 'text',
-                        text: agentResult.agentReply,
-                        aiGenerated: true,
-                        aiModel: env.ai.model,
-                        aiConfidence: 0.98,
-                        toolCalled: agentResult.toolsInvoked.join(', '),
-                        deliveryStatus: 'sent'
-                    });
-                }
-            }
-        } catch (err) {
-            logger.error('Error handling incoming WhatsApp webhook event', { error: err.message });
-        }
-    }
-});
-
-/**
- * POST /webhook/simulate
- * Interactive test harness for simulating WhatsApp conversations
- */
-router.post('/simulate', async (req, res) => {
-    const { customerPhone = '+251911223344', customerName = 'Sara Tesfaye', message = 'Hi, I need a luxury king bed' } = req.body;
 
     try {
-        const customer = await crm.upsertCustomer({
-            fullName: customerName,
-            phone: customerPhone,
-            source: 'SIMULATOR'
-        });
 
-        const conversation = await crm.getOrCreateConversation({
-            customerId: customer.id,
-            whatsappPhone: customerPhone
-        });
+      const body =
+        req.body;
 
-        await crm.recordMessage({
-            conversationId: conversation.id,
-            direction: 'inbound',
-            senderType: 'customer',
-            text: message
-        });
 
-        const agentResult = await agent.processCustomerMessage({
-            customerPhone,
-            customerName,
-            message,
-            customerId: customer.id,
-            conversationId: conversation.id
-        });
+      if (
+        body.object !==
+        "whatsapp_business_account"
+      ) {
+        return;
+      }
 
-        await crm.recordMessage({
-            conversationId: conversation.id,
-            direction: 'outbound',
-            senderType: 'ai',
-            text: agentResult.agentReply,
-            aiGenerated: true,
-            aiModel: env.ai.model,
-            toolCalled: agentResult.toolsInvoked.join(', ')
-        });
 
-        return res.status(200).json({
-            success: true,
-            pipeline: {
-                inbound: { customerPhone, customerName, message },
-                toolsUsed: agentResult.toolsInvoked,
-                leadStatus: agentResult.leadStatus,
-                agentReply: agentResult.agentReply
-            }
-        });
-    } catch (err) {
-        logger.error('Error in /webhook/simulate', { error: err.message });
-        return res.status(500).json({ success: false, error: err.message });
+      const entries =
+        body.entry || [];
+
+
+      for (const entry of entries) {
+
+        const changes =
+          entry.changes || [];
+
+
+        for (const change of changes) {
+
+          const value =
+            change.value;
+
+
+          const messages =
+            value?.messages || [];
+
+
+          for (
+            const message
+            of messages
+          ) {
+
+            await processIncomingMessage(
+              message,
+              value
+            );
+
+          }
+        }
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Webhook processing error:",
+        error
+      );
+
     }
-});
+  }
+);
 
-/**
- * GET /webhook/pipeline
- * Real-time monitoring of all pipeline entities
- */
-router.get('/pipeline', async (req, res) => {
-    const products = await productService.getAllProducts();
-    const productVariants = await productService.getProductVariants({});
-    const prices = productService.getAllPrices();
-    const conversations = crm.getAllConversations();
-    const messages = crm.getAllMessages().slice(0, 50);
-    const leads = crm.getAllLeads();
-    const customers = crm.getAllCustomers();
-    const aiToolLogs = tools.getToolLogs();
+
+// ============================================================
+// PROCESS INCOMING MESSAGE
+// ============================================================
+
+async function processIncomingMessage(
+  message,
+  webhookValue
+) {
+
+  if (
+    !message?.from
+  ) {
+    return;
+  }
+
+
+  const phone =
+    message.from;
+
+
+  const profileName =
+    webhookValue?.contacts?.[0]?.profile?.name ||
+    null;
+
+
+  const messageType =
+    message.type;
+
+
+  // ----------------------------------------------------------
+  // PHASE 1: TEXT ONLY
+  // ----------------------------------------------------------
+
+  if (
+    messageType !== "text"
+  ) {
+
+    await sendWhatsAppText(
+      phone,
+      "Thanks for contacting BEKANSI Furniture 😊 Please send your message as text for now. Image and voice-message automation will be added in the next phase."
+    );
+
+    return;
+  }
+
+
+  const text =
+    message.text?.body?.trim();
+
+
+  if (!text) {
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // CUSTOMER
+  // ----------------------------------------------------------
+
+  const customer =
+    await getOrCreateCustomer(
+      phone,
+      profileName
+    );
+
+
+  // ----------------------------------------------------------
+  // CONVERSATION
+  // ----------------------------------------------------------
+
+  const conversation =
+    await getOrCreateConversation(
+      customer
+    );
+
+
+  // ----------------------------------------------------------
+  // SAVE MESSAGE
+  // ----------------------------------------------------------
+
+  const savedMessage =
+    await saveInboundMessage({
+
+      conversationId:
+        conversation.id,
+
+      whatsappMessageId:
+        message.id,
+
+      messageType,
+
+      text
+    });
+
+
+  // Duplicate webhook.
+  if (!savedMessage) {
+    return;
+  }
+
+
+  await updateConversation(
+    conversation.id,
+    {
+      last_message_at:
+        new Date().toISOString(),
+
+      last_customer_message_at:
+        new Date().toISOString()
+    }
+  );
+
+
+  // ----------------------------------------------------------
+  // MARK AS READ
+  // ----------------------------------------------------------
+
+  try {
+
+    await markWhatsAppMessageRead(
+      message.id
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Could not mark WhatsApp message read:",
+      error.message
+    );
+
+  }
+
+
+  // ----------------------------------------------------------
+  // HUMAN TAKEOVER
+  // ----------------------------------------------------------
+
+  if (
+    conversation.ai_enabled === false
+  ) {
+
+    console.log(
+      "AI disabled; human agent owns conversation:",
+      conversation.id
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // GEMINI
+  // ----------------------------------------------------------
+
+  const aiResponse =
+    await generateBekansiReply({
+
+      conversation,
+
+      customer,
+
+      message: text
+
+    });
+
+
+  // ----------------------------------------------------------
+  // SEND AI RESPONSE
+  // ----------------------------------------------------------
+
+  await sendWhatsAppText(
+    phone,
+    aiResponse.text
+  );
+
+
+  // ----------------------------------------------------------
+  // SAVE AI MESSAGE
+  // ----------------------------------------------------------
+
+  await saveOutboundMessage({
+
+    conversationId:
+      conversation.id,
+
+    text:
+      aiResponse.text,
+
+    aiGenerated:
+      true,
+
+    aiModel:
+      process.env.GEMINI_MODEL
+
+  });
+
+
+  console.log(
+    "BEKANSI AI response sent:",
+    aiResponse.text
+  );
+}
+
+// ============================================================
+// SIMULATION ENDPOINT FOR TESTING
+// ============================================================
+router.post("/simulate", async (req, res) => {
+  const { customerPhone = "+251911223344", customerName = "Sara Tesfaye", message = "Hi, I need a luxury king bed" } = req.body;
+
+  try {
+    const customer = await getOrCreateCustomer(customerPhone, customerName);
+    const conversation = await getOrCreateConversation(customer);
+
+    await saveInboundMessage({
+      conversationId: conversation.id,
+      whatsappMessageId: `sim_${Date.now()}`,
+      messageType: "text",
+      text: message
+    });
+
+    const aiResponse = await generateBekansiReply({
+      conversation,
+      customer,
+      message
+    });
+
+    await saveOutboundMessage({
+      conversationId: conversation.id,
+      text: aiResponse.text,
+      aiGenerated: true,
+      aiModel: process.env.GEMINI_MODEL
+    });
 
     return res.status(200).json({
-        success: true,
-        data: {
-            products,
-            productVariants,
-            prices,
-            conversations,
-            messages,
-            leads,
-            customers,
-            aiToolLogs,
-            timestamp: new Date().toISOString()
-        }
+      success: true,
+      reply: aiResponse.text,
+      conversationId: conversation.id
     });
+  } catch (err) {
+    console.error("Simulation error:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 export default router;

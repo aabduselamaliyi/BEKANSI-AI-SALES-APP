@@ -1,210 +1,365 @@
-/**
- * BEKANSI AI SALES PLATFORM - AI/TOOLS.JS (ESM)
- * AI Tool definitions and dispatcher integrating Products, Pricing, and CRM
- */
+import {
+  searchProducts,
+  getProduct,
+  getProductPrice
+} from "../products/products.js";
 
-import productService from '../products/products.js';
-import crm from '../crm/crm.js';
-import logger from '../config/logger.js';
+import {
+  createOrUpdateLead,
+  updateConversation
+} from "../crm/crm.js";
 
-export const AI_TOOLS_SCHEMA = [
-    {
-        name: 'searchProductDatabase',
-        description: 'Search Bekansi Furniture Ethiopian master catalog across Beds, Sofas, Kitchen Cabinets, Wardrobes, Dining Tables, TV Stands, and Office Furniture.',
-        parameters: {
-            type: 'OBJECT',
-            properties: {
-                query: { type: 'STRING', description: 'Keyword such as "King Bed", "L-shape sofa", "UV acrylic kitchen", "dining table"' },
-                category: { type: 'STRING', description: 'Product category: Beds, Sofas, Kitchen Cabinets, Wardrobes, Dining Tables, TV Stands, Office Furniture' },
-                maxPrice: { type: 'NUMBER', description: 'Maximum budget in Ethiopian Birr (ETB)' }
-            }
+
+// ============================================================
+// TOOL DECLARATIONS
+// ============================================================
+
+export const BEKANSI_TOOLS = [
+
+  {
+    type: "function",
+
+    name: "search_products",
+
+    description:
+      "Search the Bekansi product catalog for products matching the customer's request.",
+
+    parameters: {
+      type: "object",
+
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "Product search query, such as bed, sofa, wardrobe, dining table."
         }
-    },
-    {
-        name: 'checkPriceAndQuotation',
-        description: 'Generate an accurate, official structured quotation with unit price, delivery, and installation in Ethiopian Birr (ETB). Never fabricate prices.',
-        parameters: {
-            type: 'OBJECT',
-            properties: {
-                customerName: { type: 'STRING', description: 'Customer full name' },
-                customerPhone: { type: 'STRING', description: 'Customer phone number' },
-                sku: { type: 'STRING', description: 'Product SKU (e.g., BK-BED-ENTOTO, BK-SOF-BOLE)' },
-                productName: { type: 'STRING', description: 'Full name of the furniture item' },
-                quantity: { type: 'INTEGER', description: 'Quantity requested (default 1)' },
-                color: { type: 'STRING', description: 'Specific color or fabric variant' },
-                deliveryLocation: { type: 'STRING', description: 'Sub-city or delivery neighborhood in Addis Ababa (e.g., Bole, CMC, Sarbet)' }
-            },
-            required: ['sku']
-        }
-    },
-    {
-        name: 'upsertCustomerCRM',
-        description: 'Save or update customer contact information, preferred language, and delivery location in the CRM database.',
-        parameters: {
-            type: 'OBJECT',
-            properties: {
-                fullName: { type: 'STRING', description: 'Customer full name' },
-                phoneNumber: { type: 'STRING', description: 'Customer phone number with country code (e.g. +251911223344)' },
-                preferredLanguage: { type: 'STRING', description: 'Customer language: am (Amharic), om (Afaan Oromo), or en (English)' },
-                city: { type: 'STRING', description: 'City (e.g., Addis Ababa)' },
-                subCity: { type: 'STRING', description: 'Addis Ababa Sub-city (e.g., Bole, Yeka, Kirkos, Nefas Silk)' },
-                deliveryLocation: { type: 'STRING', description: 'Specific neighborhood or landmark' }
-            },
-            required: ['phoneNumber']
-        }
-    },
-    {
-        name: 'classifyAndSaveLead',
-        description: 'Classify customer lead temperature (🔥 Hot, 🟡 Warm, ⚪ Cold) and save custom furniture specs (size, color, fabric, finish, led, socket) to the sales pipeline.',
-        parameters: {
-            type: 'OBJECT',
-            properties: {
-                customerPhone: { type: 'STRING', description: 'Customer phone number' },
-                customerName: { type: 'STRING', description: 'Customer name' },
-                productCategory: { type: 'STRING', description: 'Category: Beds, Sofas, Kitchen Cabinets, Wardrobes, etc.' },
-                quantity: { type: 'INTEGER', description: 'Quantity requested' },
-                size: { type: 'STRING', description: 'Size requested (e.g. King 180x200cm, 5-seater)' },
-                color: { type: 'STRING', description: 'Color choice (e.g. Royal Blue, Emerald Green)' },
-                fabric: { type: 'STRING', description: 'Fabric choice (e.g. Imported Velvet, Linen Blend)' },
-                finish: { type: 'STRING', description: 'Wood/metal finish (e.g. High Gloss Walnut, Matte Oak)' },
-                ledRequired: { type: 'BOOLEAN', description: 'Whether LED ambient lighting is requested' },
-                socketRequired: { type: 'BOOLEAN', description: 'Whether integrated USB/power sockets are requested' },
-                budgetMin: { type: 'NUMBER', description: 'Minimum budget in ETB' },
-                budgetMax: { type: 'NUMBER', description: 'Maximum budget in ETB' },
-                purchaseTimeline: { type: 'STRING', description: 'Timeline (e.g. Ready this week, 2-4 weeks)' },
-                leadStatus: { type: 'STRING', description: 'Classification: 🔥 Hot Lead, 🟡 Warm Lead, or ⚪ Cold Lead' },
-                missingInformation: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Missing fields' }
-            },
-            required: ['customerPhone']
-        }
-    },
-    {
-        name: 'requestHumanHandoff',
-        description: 'Escalate complex custom architectural woodwork, full villa interior fitouts, or high-value VIP orders to a human sales consultant in our Addis Ababa showroom.',
-        parameters: {
-            type: 'OBJECT',
-            properties: {
-                customerPhone: { type: 'STRING', description: 'Customer phone' },
-                customerName: { type: 'STRING', description: 'Customer name' },
-                reason: { type: 'STRING', description: 'Reason for showroom escalation' },
-                urgency: { type: 'STRING', description: 'Urgency level: normal, high, or immediate' }
-            },
-            required: ['customerPhone', 'reason']
-        }
+      },
+
+      required: ["query"]
     }
+  },
+
+
+  {
+    type: "function",
+
+    name: "get_product",
+
+    description:
+      "Retrieve detailed information about a Bekansi product using its SKU.",
+
+    parameters: {
+      type: "object",
+
+      properties: {
+        product_sku: {
+          type: "string",
+          description:
+            "Bekansi product SKU such as BED-150 or BED-180."
+        }
+      },
+
+      required: ["product_sku"]
+    }
+  },
+
+
+  {
+    type: "function",
+
+    name: "get_product_price",
+
+    description:
+      "Retrieve the current official Bekansi price from the database. Never guess a price.",
+
+    parameters: {
+      type: "object",
+
+      properties: {
+        product_sku: {
+          type: "string",
+          description:
+            "Bekansi product SKU."
+        },
+
+        size: {
+          type: "string",
+          description:
+            "Requested product size if known."
+        }
+      },
+
+      required: ["product_sku"]
+    }
+  },
+
+
+  {
+    type: "function",
+
+    name: "get_delivery_policy",
+
+    description:
+      "Retrieve Bekansi's current general delivery policy.",
+
+    parameters: {
+      type: "object",
+      properties: {}
+    }
+  },
+
+
+  {
+    type: "function",
+
+    name: "create_or_update_lead",
+
+    description:
+      "Create or update the customer's CRM lead information.",
+
+    parameters: {
+      type: "object",
+
+      properties: {
+
+        customer_type: {
+          type: "string",
+          enum: [
+            "B2C",
+            "B2B",
+            "UNKNOWN"
+          ]
+        },
+
+        product_category: {
+          type: "string"
+        },
+
+        quantity: {
+          type: "integer"
+        },
+
+        size: {
+          type: "string"
+        },
+
+        color: {
+          type: "string"
+        },
+
+        fabric: {
+          type: "string"
+        },
+
+        finish: {
+          type: "string"
+        },
+
+        led_required: {
+          type: "boolean"
+        },
+
+        socket_required: {
+          type: "boolean"
+        },
+
+        delivery_location: {
+          type: "string"
+        },
+
+        purchase_timeline: {
+          type: "string"
+        },
+
+        lead_stage: {
+          type: "string"
+        },
+
+        lead_score: {
+          type: "integer"
+        }
+      }
+    }
+  },
+
+
+  {
+    type: "function",
+
+    name: "handoff_to_human",
+
+    description:
+      "Transfer the WhatsApp conversation from AI to a human Bekansi salesperson.",
+
+    parameters: {
+      type: "object",
+
+      properties: {
+        reason: {
+          type: "string",
+          description:
+            "Reason the human salesperson should take over."
+        },
+
+        summary: {
+          type: "string",
+          description:
+            "Concise summary for the salesperson."
+        }
+      },
+
+      required: [
+        "reason",
+        "summary"
+      ]
+    }
+  }
+
 ];
 
-const aiToolLogs = [];
 
-export const tools = {
-    executeTool: async (toolName, args, context = {}) => {
-        logger.info(`AI Tool Invocation: ${toolName}`, { args });
-        const startTime = Date.now();
-        let result = null;
-        let status = 'SUCCESS';
-        let errorMessage = null;
+// ============================================================
+// TOOL EXECUTION
+// ============================================================
 
-        try {
-            switch (toolName) {
-                case 'searchProductDatabase': {
-                    const products = await productService.searchProducts({
-                        query: args.query || '',
-                        category: args.category || ''
-                    });
-                    result = { count: products.length, products };
-                    break;
-                }
+export async function executeTool(
+  toolName,
+  args,
+  context = {}
+) {
 
-                case 'checkPriceAndQuotation': {
-                    result = await productService.generateQuotation({
-                        customerName: args.customerName || context.customerName,
-                        customerPhone: args.customerPhone || context.customerPhone,
-                        productName: args.productName,
-                        sku: args.sku,
-                        quantity: args.quantity || 1,
-                        color: args.color,
-                        deliveryLocation: args.deliveryLocation || context.deliveryLocation || 'Addis Ababa'
-                    });
-                    break;
-                }
+  switch (toolName) {
 
-                case 'upsertCustomerCRM': {
-                    const customer = await crm.upsertCustomer({
-                        fullName: args.fullName,
-                        phone: args.phoneNumber,
-                        preferredLanguage: args.preferredLanguage,
-                        city: args.city,
-                        subCity: args.subCity,
-                        deliveryLocation: args.deliveryLocation
-                    });
-                    result = { success: true, customer };
-                    break;
-                }
+    case "search_products": {
 
-                case 'classifyAndSaveLead': {
-                    const lead = await crm.classifyAndSaveLead({
-                        customerId: context.customerId,
-                        conversationId: context.conversationId,
-                        customerPhone: args.customerPhone || context.customerPhone,
-                        customerName: args.customerName || context.customerName,
-                        productCategory: args.productCategory,
-                        quantity: args.quantity || 1,
-                        size: args.size,
-                        color: args.color,
-                        fabric: args.fabric,
-                        finish: args.finish,
-                        ledRequired: args.ledRequired,
-                        socketRequired: args.socketRequired,
-                        budgetMin: args.budgetMin,
-                        budgetMax: args.budgetMax,
-                        purchaseTimeline: args.purchaseTimeline,
-                        leadStatus: args.leadStatus,
-                        missingInformation: args.missingInformation || []
-                    });
-                    result = { success: true, lead };
-                    break;
-                }
+      return await searchProducts(
+        args.query
+      );
 
-                case 'requestHumanHandoff': {
-                    result = {
-                        success: true,
-                        ticketId: `HANDOFF-${Date.now().toString().slice(-6)}`,
-                        status: 'ASSIGNED_TO_SHOWROOM',
-                        assignedConsultant: 'Dawit Mengistu (Bole Showroom Manager)',
-                        phone: '+251911445566',
-                        note: `Escalation received for ${args.customerName || 'Customer'} (${args.customerPhone}): ${args.reason}`
-                    };
-                    break;
-                }
+    }
 
-                default:
-                    throw new Error(`Unrecognized AI tool name: ${toolName}`);
-            }
-        } catch (err) {
-            status = 'ERROR';
-            errorMessage = err.message;
-            logger.error(`Error executing AI tool ${toolName}`, { error: err.message });
-            result = { success: false, error: err.message };
+
+    case "get_product": {
+
+      return await getProduct(
+        args.product_sku
+      );
+
+    }
+
+
+    case "get_product_price": {
+
+      return await getProductPrice({
+        product_sku: args.product_sku,
+        size: args.size || null
+      });
+
+    }
+
+
+    case "get_delivery_policy": {
+
+      return {
+        delivery_available: true,
+        coverage: "Across Ethiopia",
+        business_location:
+          process.env.BEKANSI_LOCATION,
+        whatsapp:
+          process.env.BEKANSI_WHATSAPP
+      };
+
+    }
+
+
+    case "create_or_update_lead": {
+
+      const {
+        customer_type,
+        product_category,
+        quantity,
+        size,
+        color,
+        fabric,
+        finish,
+        led_required,
+        socket_required,
+        purchase_timeline,
+        lead_stage,
+        lead_score
+      } = args;
+
+      const lead = await createOrUpdateLead(
+        context,
+        {
+          product_category,
+          quantity,
+          size,
+          color,
+          fabric,
+          finish,
+          led_required,
+          socket_required,
+          purchase_timeline,
+          lead_stage,
+          lead_score,
+          lead_temperature:
+            Number(lead_score || 0) >= 80
+              ? "HOT"
+              : Number(lead_score || 0) >= 60
+                ? "WARM"
+                : Number(lead_score || 0) >= 40
+                  ? "DEVELOPING"
+                  : "COLD"
         }
+      );
 
-        const logEntry = {
-            id: `LOG-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            tool_name: toolName,
-            input_arguments: args,
-            output_result: result,
-            status,
-            error_message: errorMessage,
-            duration_ms: Date.now() - startTime,
-            created_at: new Date().toISOString()
-        };
-        aiToolLogs.unshift(logEntry);
-        if (aiToolLogs.length > 200) aiToolLogs.pop();
+      return {
+        success: true,
+        lead
+      };
 
-        return result;
-    },
+    }
 
-    getToolLogs: () => aiToolLogs,
-    AI_TOOLS_SCHEMA
+
+    case "handoff_to_human": {
+
+      const updated =
+        await updateConversation(
+          context.conversationId,
+          {
+            ai_enabled: false,
+            human_assigned: true,
+            status: "human"
+          }
+        );
+
+      return {
+        success: true,
+        handed_off: true,
+        reason: args.reason,
+        summary: args.summary,
+        conversation_id: updated?.id || context.conversationId
+      };
+
+    }
+
+
+    default:
+
+      throw new Error(
+        `Unknown tool: ${toolName}`
+      );
+  }
+}
+
+// Compatibility exports
+export const AI_TOOLS_SCHEMA = BEKANSI_TOOLS;
+export const tools = {
+  executeTool,
+  getToolLogs: () => [],
+  AI_TOOLS_SCHEMA: BEKANSI_TOOLS,
+  BEKANSI_TOOLS
 };
 
 export default tools;

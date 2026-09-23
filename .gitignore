@@ -15,4 +15,8 @@
 .cxx
 local.properties
 .env
+.env.*
+!.env.example
+node_modules/
+npm-debug.log*
 debug.keystore
