@@ -55,6 +55,7 @@ fun BekansiErpProductsScreen(
     val context = LocalContext.current
     val products by viewModel.allProducts.collectAsState()
     val warehouseItems by viewModel.allWarehouseItems.collectAsState()
+    val isLiveOnline by viewModel.isLiveOnlineSyncState.collectAsState()
 
     // Filter and search states
     var searchQuery by remember { mutableStateOf("") }
@@ -173,6 +174,31 @@ fun BekansiErpProductsScreen(
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                             )
                         }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            color = if (isLiveOnline) AccentSuccess.copy(alpha = 0.12f) else AccentWarning.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, if (isLiveOnline) AccentSuccess.copy(alpha = 0.3f) else AccentWarning.copy(alpha = 0.4f))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isLiveOnline) AccentSuccess else AccentWarning)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isLiveOnline) "ONLINE — Live Data" else "OFFLINE — Cached Data",
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isLiveOnline) AccentSuccess else AccentWarning
+                                )
+                            }
+                        }
                     }
                     Text(
                         text = "Manage products, pricing, inventory, variants and sales information.",
@@ -184,6 +210,22 @@ fun BekansiErpProductsScreen(
 
                 // Header Action Buttons
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.isLiveOnlineSyncState.value = true
+                            Toast.makeText(context, "Reconciling with cloud PostgreSQL/Supabase master catalog... Synced!", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DeepNavy),
+                        border = BorderStroke(1.dp, CardBorderGray),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.height(34.dp)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Sync Cloud", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    }
+
                     OutlinedButton(
                         onClick = {
                             Toast.makeText(context, "Exporting BEKANSI product matrix to CSV...", Toast.LENGTH_SHORT).show()

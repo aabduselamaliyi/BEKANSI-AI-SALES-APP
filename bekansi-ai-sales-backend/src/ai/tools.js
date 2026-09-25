@@ -102,11 +102,16 @@ export const BEKANSI_TOOLS = [
     name: "get_delivery_policy",
 
     description:
-      "Retrieve Bekansi's current general delivery policy.",
+      "Retrieve Bekansi's current official delivery policy across Ethiopia (Addis Ababa, Dukem, Oromia, Jigjiga, Hawassa, Bahir Dar, Dire Dawa).",
 
     parameters: {
       type: "object",
-      properties: {}
+      properties: {
+        destination_city: {
+          type: "string",
+          description: "Optional destination city/town in Ethiopia (e.g., Addis Ababa, Jigjiga, Hawassa)."
+        }
+      }
     }
   },
 
@@ -262,9 +267,16 @@ export async function executeTool(
 
     case "get_delivery_policy": {
 
+      const city = args.destination_city?.trim();
+      const isRegional = city && !city.toLowerCase().includes("addis") && !city.toLowerCase().includes("dukem");
+
       return {
         delivery_available: true,
         coverage: env.brand.freeDelivery || "Across Ethiopia",
+        destination_requested: city || "All Regional & Addis Destinations",
+        delivery_notes: isRegional 
+          ? `Delivery to ${city} is supported via dedicated freight carriers dispatched from Dukem Central Workshop. Transit timeframe is typically 3-5 days.`
+          : "Delivery within Addis Ababa and Dukem showroom perimeter is scheduled directly upon production completion.",
         business_location:
           env.brand.location || "Dukem, in front of Daroni Hotel, beside Oromia Bank, next to Dibora Restaurant",
         whatsapp:

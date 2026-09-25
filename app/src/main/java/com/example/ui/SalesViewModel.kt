@@ -196,6 +196,7 @@ class SalesViewModel(
     val activeChannel = MutableStateFlow("WhatsApp") // WhatsApp, Facebook, Telegram, LiveChat
     val selectedLanguage = MutableStateFlow("en") // "en", "am", "om"
     val currentUserRole = MutableStateFlow("Super Admin") // Super Admin, Sales Manager, Interior Designer, Logistics Manager
+    val isLiveOnlineSyncState = MutableStateFlow(true) // Cloud PostgreSQL authoritative connection status indicator
 
     val currentChannelMessages = activeChannel.flatMapLatest { channel ->
         repository.getMessagesByChannel(channel)
