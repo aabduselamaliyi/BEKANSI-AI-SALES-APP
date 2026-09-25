@@ -192,10 +192,8 @@ fun EnterpriseMainScreen(viewModel: SalesViewModel) {
                 }
 
                 "PRODUCTS" -> {
-                    ProductCatalogTab(
-                        products = products,
-                        onAddProduct = { viewModel.addProduct(it) },
-                        onDeleteProduct = { viewModel.deleteProduct(it) }
+                    BekansiErpProductsScreen(
+                        viewModel = viewModel
                     )
                 }
 
@@ -315,15 +313,15 @@ fun TabSelectorRow(activeTab: String, onTabSelected: (String) -> Unit) {
 
 @Composable
 fun TabItem(icon: ImageVector, label: String, isSelected: Boolean, onClick: () -> Unit) {
-    val containerBg = if (isSelected) WarmMahogany else Color.Transparent
-    val contentCol = if (isSelected) Color.White else TextMuted
+    val containerBg = if (isSelected) DeepNavy else Color.Transparent
+    val contentCol = if (isSelected) GoldAccent else TextMuted
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
             .background(containerBg)
             .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 6.dp),
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -335,8 +333,8 @@ fun TabItem(icon: ImageVector, label: String, isSelected: Boolean, onClick: () -
             Text(
                 text = label,
                 fontSize = 12.sp,
-                color = contentCol,
-                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
+                color = if (isSelected) PureWhite else TextDark,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
             )
         }
     }

@@ -9,6 +9,8 @@ import {
   updateConversation
 } from "../crm/crm.js";
 
+import { env } from "../config/env.js";
+
 
 // ============================================================
 // TOOL DECLARATIONS
@@ -262,11 +264,11 @@ export async function executeTool(
 
       return {
         delivery_available: true,
-        coverage: "Across Ethiopia",
+        coverage: env.brand.freeDelivery || "Across Ethiopia",
         business_location:
-          process.env.BEKANSI_LOCATION,
+          env.brand.location || "Dukem, in front of Daroni Hotel, beside Oromia Bank, next to Dibora Restaurant",
         whatsapp:
-          process.env.BEKANSI_WHATSAPP
+          env.brand.whatsapp || "+251988828861"
       };
 
     }

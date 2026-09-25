@@ -105,28 +105,34 @@ app.use(
 
 
 // ============================================================
-// START
+// PROCESS GUARDS & START
 // ============================================================
 
-const PORT =
-  process.env.PORT || 3000;
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
 
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception thrown:", err);
+});
 
-app.listen(
+const PORT = 3000;
+
+const server = app.listen(
   PORT,
-
+  "0.0.0.0",
   () => {
-
     console.log(
       `BEKANSI AI Sales backend running on port ${PORT}`
     );
-
     console.log(
-      `Webhook:
-http://localhost:${PORT}/api/webhooks/whatsapp`
+      `Webhook: http://localhost:${PORT}/api/webhooks/whatsapp`
     );
-
   }
 );
+
+server.on("error", (err) => {
+  console.error("Server listen error:", err);
+});
 
 export default app;

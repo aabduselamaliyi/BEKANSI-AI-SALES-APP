@@ -13,10 +13,10 @@ import androidx.compose.ui.platform.LocalContext
 
 private val GlobalWhiteColorScheme =
   lightColorScheme(
-    primary = WarmMahogany,
+    primary = DeepNavy,
     secondary = GoldAccent,
     tertiary = AccentSuccess,
-    background = PureWhite,
+    background = LightGrayBg,
     surface = PureWhite,
     surfaceVariant = LightSurfaceVariant,
     onPrimary = Color.White,
@@ -28,7 +28,7 @@ private val GlobalWhiteColorScheme =
     outline = CardBorderGray,
     outlineVariant = CardBorderGray,
     primaryContainer = PureWhite,
-    onPrimaryContainer = TextDark,
+    onPrimaryContainer = DeepNavy,
     secondaryContainer = LightSurfaceVariant,
     onSecondaryContainer = TextDark
   )

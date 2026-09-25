@@ -410,12 +410,21 @@ class SalesViewModel(
     fun addProduct(product: Product) {
         viewModelScope.launch {
             repository.insertProduct(product)
+            addAuditLog(currentUserRole.value, "ADD_PRODUCT", "Registered product '${product.name}' in catalog (ETB ${product.price})")
+        }
+    }
+
+    fun updateProduct(product: Product) {
+        viewModelScope.launch {
+            repository.insertProduct(product)
+            addAuditLog(currentUserRole.value, "UPDATE_PRODUCT", "Updated product '${product.name}' (ID: ${product.id})")
         }
     }
 
     fun deleteProduct(id: Int) {
         viewModelScope.launch {
             repository.deleteProduct(id)
+            addAuditLog(currentUserRole.value, "DELETE_PRODUCT", "Deleted product ID #$id from catalog")
         }
     }
 
@@ -652,10 +661,28 @@ class SalesViewModel(
         }
     }
 
-    fun addOrder(order: OrderRecord) {
+    fun addOrder(order: OrderRecord, deductStock: Boolean = true) {
         viewModelScope.launch {
             repository.insertOrder(order)
             addAuditLog(currentUserRole.value, "CREATE_ORDER", "Created Order for ${order.productName} (ETB ${order.totalAmount})")
+
+            // Idempotent single stock reservation/deduction from matching warehouse inventory
+            if (deductStock) {
+                val warehouseItems = repository.allWarehouseItems.first()
+                val matchedItem = warehouseItems.find { 
+                    it.productName.contains(order.productName.substringBefore(" '"), ignoreCase = true) ||
+                    order.productName.contains(it.productName, ignoreCase = true)
+                }
+                if (matchedItem != null && matchedItem.quantity > 0) {
+                    val updatedQty = (matchedItem.quantity - 1).coerceAtLeast(0)
+                    repository.updateWarehouseStock(matchedItem.id, updatedQty)
+                    addAuditLog(
+                        currentUserRole.value, 
+                        "INVENTORY_RESERVATION", 
+                        "Deducted 1 unit for Order of '${order.productName}' in ${matchedItem.warehouseName} (Stock: ${matchedItem.quantity} -> $updatedQty)"
+                    )
+                }
+            }
         }
     }
 
