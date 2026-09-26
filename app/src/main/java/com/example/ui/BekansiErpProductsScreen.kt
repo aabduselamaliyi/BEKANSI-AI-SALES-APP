@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.data.model.Product
 import com.example.data.model.WarehouseItem
 import com.example.ui.theme.*
@@ -271,7 +272,7 @@ fun BekansiErpProductsScreen(
                     title = "Total Products",
                     value = totalProductsCount.toString(),
                     subtitle = "Catalog master count",
-                    icon = Icons.Default.List,
+                    icon = Icons.AutoMirrored.Filled.List,
                     iconBg = DeepNavy,
                     iconTint = PureWhite
                 )
@@ -629,7 +630,12 @@ fun BekansiErpProductsScreen(
                                             ) {
                                                 if (item.imageUrl.isNotBlank()) {
                                                     AsyncImage(
-                                                        model = item.imageUrl,
+                                                        model = ImageRequest.Builder(context)
+                                                            .data(item.imageUrl)
+                                                            .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                                                            .allowHardware(false)
+                                                            .crossfade(true)
+                                                            .build(),
                                                         contentDescription = item.name,
                                                         contentScale = ContentScale.Crop,
                                                         modifier = Modifier.fillMaxSize()
@@ -805,7 +811,12 @@ fun BekansiErpProductsScreen(
                                     ) {
                                         if (item.imageUrl.isNotBlank()) {
                                             AsyncImage(
-                                                model = item.imageUrl,
+                                                model = ImageRequest.Builder(context)
+                                                    .data(item.imageUrl)
+                                                    .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                                                    .allowHardware(false)
+                                                    .crossfade(true)
+                                                    .build(),
                                                 contentDescription = item.name,
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier.fillMaxSize()

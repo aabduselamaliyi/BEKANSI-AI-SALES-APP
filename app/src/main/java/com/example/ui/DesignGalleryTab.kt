@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -249,7 +251,7 @@ fun DesignGalleryTab(
                                 onClick = { isGridView = false },
                                 modifier = Modifier.size(34.dp).background(if (!isGridView) WarmMahogany else Color.Transparent, RoundedCornerShape(6.dp))
                             ) {
-                                Icon(Icons.Default.List, contentDescription = "List", tint = if (!isGridView) Color.White else TextMuted, modifier = Modifier.size(16.dp))
+                                Icon(Icons.AutoMirrored.Filled.List, contentDescription = "List", tint = if (!isGridView) Color.White else TextMuted, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -729,6 +731,8 @@ fun GalleryCardGridItem(
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(if (design.publicUrl.isNotBlank()) design.publicUrl else design.imageUri)
+                        .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                        .allowHardware(false)
                         .crossfade(true)
                         .build(),
                     contentDescription = design.productName,
@@ -918,6 +922,8 @@ fun GalleryListItem(
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(if (design.publicUrl.isNotBlank()) design.publicUrl else design.imageUri)
+                        .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                        .allowHardware(false)
                         .crossfade(true)
                         .build(),
                     contentDescription = design.productName,
@@ -1147,7 +1153,12 @@ fun MultipleImageUploadModal(
                                     .background(LightSurfaceVariant)
                             ) {
                                 AsyncImage(
-                                    model = currentUri,
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(currentUri)
+                                        .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                                        .allowHardware(false)
+                                        .crossfade(true)
+                                        .build(),
                                     contentDescription = "Preview",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
@@ -1211,7 +1222,12 @@ fun MultipleImageUploadModal(
                                             .clickable { selectedIndex = idx }
                                     ) {
                                         AsyncImage(
-                                            model = uri,
+                                            model = ImageRequest.Builder(LocalContext.current)
+                                                .data(uri)
+                                                .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                                                .allowHardware(false)
+                                                .crossfade(true)
+                                                .build(),
                                             contentDescription = "Thumbnail",
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier.fillMaxSize()
@@ -1459,6 +1475,8 @@ fun DesignDetailModal(
                     SubcomposeAsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(if (design.publicUrl.isNotBlank()) design.publicUrl else design.imageUri)
+                            .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                            .allowHardware(false)
                             .crossfade(true)
                             .build(),
                         contentDescription = design.productName,
@@ -1566,7 +1584,7 @@ fun DesignDetailModal(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth().height(38.dp)
                     ) {
-                        Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Use in Customer Conversation / WhatsApp", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
@@ -1720,7 +1738,7 @@ fun ShareToConversationDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = AccentSuccess),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Send via WhatsApp", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }

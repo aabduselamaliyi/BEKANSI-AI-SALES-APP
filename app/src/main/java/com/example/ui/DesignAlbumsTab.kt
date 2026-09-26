@@ -396,6 +396,8 @@ fun AlbumCardGridItem(
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(album.imageUrls.split(",").firstOrNull())
+                        .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                        .allowHardware(false)
                         .crossfade(true)
                         .build(),
                     contentDescription = album.name,
@@ -678,7 +680,12 @@ fun AiAdvisorModule(
                     ) {
                         Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(
-                                model = alb.imageUrls.split(",").firstOrNull(),
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(alb.imageUrls.split(",").firstOrNull())
+                                    .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                                    .allowHardware(false)
+                                    .crossfade(true)
+                                    .build(),
                                 contentDescription = alb.name,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -857,7 +864,12 @@ fun FavoritesAndCompareModule(
                     ) {
                         Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(
-                                model = album.imageUrls.split(",").firstOrNull(),
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(album.imageUrls.split(",").firstOrNull())
+                                    .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                                    .allowHardware(false)
+                                    .crossfade(true)
+                                    .build(),
                                 contentDescription = album.name,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -1172,7 +1184,12 @@ fun AlbumDetailModal(
                         .clip(RoundedCornerShape(8.dp))
                 ) {
                     AsyncImage(
-                        model = album.imageUrls.split(",").firstOrNull(),
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(album.imageUrls.split(",").firstOrNull())
+                            .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                            .allowHardware(false)
+                            .crossfade(true)
+                            .build(),
                         contentDescription = album.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -1501,7 +1518,12 @@ fun InteriorDesignPortfolioModule(context: android.content.Context, viewModel: S
                             .clip(RoundedCornerShape(8.dp))
                     ) {
                         AsyncImage(
-                            model = proj.imageUrl,
+                            model = ImageRequest.Builder(context)
+                                .data(proj.imageUrl)
+                                .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                                .allowHardware(false)
+                                .crossfade(true)
+                                .build(),
                             contentDescription = proj.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
@@ -1800,7 +1822,12 @@ fun MediaUploadDamModule(context: android.content.Context, viewModel: SalesViewM
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     AsyncImage(
-                        model = item.url,
+                        model = ImageRequest.Builder(context)
+                            .data(item.url)
+                            .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                            .allowHardware(false)
+                            .crossfade(true)
+                            .build(),
                         contentDescription = item.title,
                         modifier = Modifier.size(54.dp).clip(RoundedCornerShape(6.dp)),
                         contentScale = ContentScale.Crop
@@ -1952,7 +1979,12 @@ fun AiMediaSmmIntegrationModule(context: android.content.Context, viewModel: Sal
                     Spacer(modifier = Modifier.height(6.dp))
                     if (selectedMediaAssetUrl.isNotBlank()) {
                         AsyncImage(
-                            model = selectedMediaAssetUrl,
+                            model = ImageRequest.Builder(context)
+                                .data(selectedMediaAssetUrl)
+                                .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                                .allowHardware(false)
+                                .crossfade(true)
+                                .build(),
                             contentDescription = "Asset",
                             modifier = Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(8.dp)),
                             contentScale = ContentScale.Crop
