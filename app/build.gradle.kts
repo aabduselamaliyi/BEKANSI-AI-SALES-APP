@@ -11,7 +11,7 @@ android {
   compileSdk = 35
 
   defaultConfig {
-    applicationId = "com.aistudio.bekansiaisales.gpkvd"
+    applicationId = "com.aistudio.bekansiaisales.gpkvd2"
     minSdk = 24
     targetSdk = 35
     versionCode = 2
